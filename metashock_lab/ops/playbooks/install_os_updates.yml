@@ -1,0 +1,10 @@
+# Works only for Debian / Ubuntu so far
+---
+- name: Install OS updates
+  hosts: "{{ target | default('bare_metal') }}"
+  tasks:
+    - name: apt update
+      ansible.builtin.apt:
+        upgrade: full
+        update_cache: yes
+      become: true
