@@ -1,0 +1,109 @@
+#
+# - install Kea OS package
+# - render the configuration files
+# - start kea
+#
+---
+- name: Install OS package
+  ansible.builtin.package:
+    name: kea
+  become: true
+
+- name: Mask the kea-dhcp6 service
+  ansible.builtin.systemd:
+    name: kea-dhcp6-server.service
+    masked: true
+  become: true
+
+- name: Ensure that the config directories exists and permissions are correct
+  ansible.builtin.include_tasks:
+    file: ensure_config_dir_exists.yml
+  loop:
+    - "{{ kea_config_dir }}"
+    - "{{ kea_config_dir }}/include"
+    - "{{ kea_config_dir }}/include/dhcp4_subnets"
+  loop_control:
+    loop_var: path
+
+- name: Get a list of all existing subnet4 definitions
+  ansible.builtin.find:
+    paths:
+      - "{{ kea_config_dir }}/include/dhcp4_subnets"
+    pattern: "*.conf"
+    recurse: false
+  register: find_result
+  become: true
+
+- name: Compile list of subnet4 addresses defined in the config
+  ansible.builtin.set_fact:
+    subnet4_addresses: "{{ (subnet4_addresses | default([])) + [item.network_address] }}"
+  loop: "{{ kea_dhcp4_config.subnets }}"
+  loop_control:
+    label: "{{ item.network_address }}"
+
+- name: Render the configuration for each IPv4 subnet
+  ansible.builtin.template:
+    src: conf/include/subnet4.conf.tpl
+    dest: "{{ kea_config_dir }}/include/dhcp4_subnets/{{ item.network_address | replace('/', '_') }}.conf"
+    trim_blocks: true
+    lstrip_blocks: true
+    owner: root
+    group: root
+    mode: "0644"
+  vars:
+    subnet: "{{ item }}"
+  become: true
+  loop: "{{ kea_dhcp4_config.subnets }}"
+  loop_control:
+    label: "{{ item.network_address }}"
+  notify:
+    - Validate dhcp4 config
+    - Validate dhcp-ddns config
+    - Restart kea-dhcp4-server.service
+    - Restart kea-dhcp-ddns-server.service
+    - Restart kea-ctrl-agent.service
+
+- name: Render the configuration templates
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    trim_blocks: true
+    lstrip_blocks: true
+    owner: root
+    group: root
+    mode: "0644"
+  register: copy_result
+  become: true
+  loop:
+    - src: conf/kea-dhcp4.conf.tpl
+      dest: "{{ kea_config_dir }}/kea-dhcp4.conf"
+    - src: conf/kea-dhcp-ddns.conf.tpl
+      dest: "{{ kea_config_dir }}/kea-dhcp-ddns.conf"
+    - src: conf/kea-ctrl-agent.conf.tpl
+      dest: "{{ kea_config_dir }}/kea-ctrl-agent.conf"
+    - src: conf/include/dhcp4-ddns-options.conf.tpl
+      dest: "{{ kea_config_dir }}/include/dhcp4-ddns-options.conf"
+    - src: conf/include/dhcp4-option-def.conf.tpl
+      dest: "{{ kea_config_dir }}/include/dhcp4-option-def.conf"
+    - src: conf/include/logging.conf.tpl
+      dest: "{{ kea_config_dir }}/include/logging.conf"
+    - src: conf/include/dhcp4-client-classes.conf.tpl
+      dest: "{{ kea_config_dir }}/include/dhcp4-client-classes.conf"
+    - src: conf/include/tsig-keys.conf.tpl
+      dest: "{{ kea_config_dir }}/include/tsig-keys.conf"
+  notify:
+    - Validate dhcp4 config
+    - Validate dhcp-ddns config
+    - Restart kea-dhcp4-server.service
+    - Restart kea-dhcp-ddns-server.service
+    - Restart kea-ctrl-agent.service
+
+- name: Cleanup - Delete existing subnet definitions which have been removed from the config
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  when: (item.path | ansible.builtin.basename | replace('_', '/') | replace('.conf', '')) not in subnet4_addresses
+  loop: "{{ find_result.files }}"
+  loop_control:
+    label: "{{ item.path | ansible.builtin.basename }}"
+  become: true

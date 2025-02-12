@@ -1,0 +1,32 @@
+---
+- name: Validate dhcp4 config
+  ansible.builtin.command:
+    # /usr/sbin is not in ansible's $PATH
+    cmd: /usr/sbin/kea-dhcp4 -t "{{ kea_config_dir }}/kea-dhcp4.conf"
+  changed_when: false
+  become: true
+
+- name: Validate dhcp-ddns config
+  ansible.builtin.command:
+    # /usr/sbin is not in ansible's $PATH
+    cmd: /usr/sbin/kea-dhcp-ddns -t "{{ kea_config_dir }}/kea-dhcp-ddns.conf"
+  changed_when: false
+  become: true
+
+- name: Restart kea-dhcp4-server.service
+  ansible.builtin.service:
+    name: kea-dhcp4-server.service
+    state: restarted
+  become: true
+
+- name: Restart kea-dhcp-ddns-server.service
+  ansible.builtin.service:
+    name: kea-dhcp-ddns-server.service
+    state: restarted
+  become: true
+
+- name: Restart kea-ctrl-agent.service
+  ansible.builtin.service:
+    name: kea-ctrl-agent.service
+    state: restarted
+  become: true

@@ -1,0 +1,37 @@
+---
+kea_daemon_username: _kea
+
+kea_config_dir: /etc/kea
+kea_config_tsig_keys_path: "{{ kea_config_dir }}/tsig.keys"
+
+kea_dhcp4_listen_interfaces: ["eth0"]
+
+kea_dhcp_ddns_listen_address: 127.0.0.1
+kea_dhcp_ddns_listen_port: 53001
+
+# This specifies the severity of log messages to keep. Supported values
+# are: FATAL, ERROR, WARN, INFO, DEBUG
+kea_logging_severity: INFO
+
+# If DEBUG level is specified, this value is used. 0 is least verbose,
+# 99 is most verbose. Be cautious, Kea can generate lots and lots
+# of logs if told to do so.
+kea_logging_debug_level: 10
+
+kea_dhcp_ddns_forward_domains: []
+kea_dhcp_ddns_reverse_domains: []
+
+kea_dhcp4_ddns_enable_updates: true
+kea_dhcp4_ddns_send_updates: true
+kea_dhcp4_ddns_override_client_update: true
+kea_dhcp4_ddns_override_no_update: true
+kea_dhcp4_ddns_replace_client_name: "always"
+kea_dhcp4_ddns_generated_prefix: "ddns"
+
+# Please override in the inventory.
+# Example:
+#   kea_dhcp4_ddns_qualifying_suffix: "lab.metashock.net"
+kea_dhcp4_ddns_qualifying_suffix: ""
+
+# Useful for debugging. Can be disabled in production
+kea_dhcp4_ddns_update_on_renew: false

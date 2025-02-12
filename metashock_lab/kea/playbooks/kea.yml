@@ -1,0 +1,5 @@
+---
+- name: Install / Configure Kea DHCP server
+  hosts: "{{ target|default('kea') }}"
+  roles:
+    - metashock_lab.kea.kea

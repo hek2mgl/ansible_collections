@@ -1,0 +1,24 @@
+# Arguments:
+#
+#   - path
+---
+- name: Check stat of config directory "{{ path }}"
+  ansible.builtin.stat:
+    path: "{{ path }}"
+  register: stat_result
+  become: true
+
+- name: Create config directory or fix permissions "{{ path }}"
+  ansible.builtin.file:
+    name: "{{ path }}"
+    state: directory
+    owner: root
+    group: root
+    recurse: true
+    mode: "0755"
+  when: >
+    not stat_result.stat.exists or
+    stat_result.stat.gr_name != 'root' or
+    stat_result.stat.pw_name != 'root' or
+    stat_result.stat.mode != "0755"
+  become: true
