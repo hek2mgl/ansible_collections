@@ -1,6 +1,6 @@
 {
   "Control-agent": {
-      "http-host": "127.0.0.1",
+      "http-host": "{{ kea_ctrl_agent_http_host }}",
       // If enabling HA and multi-threading, the 8000 port is used by the HA
       // hook library http listener. When using HA hook library with
       // multi-threading to function, make sure the port used by dedicated

@@ -40,3 +40,12 @@ kea_dhcp4_ddns_qualifying_suffix: ""
 
 # Useful for debugging. Can be disabled in production
 kea_dhcp4_ddns_update_on_renew: false
+
+
+# By default, in a single instance configuration, it is safest
+# to run the ctrl agent on 127.0.0.1
+#
+# In HA setups, or if remote http access is needed, this variable
+# has to be overwritten at host level. The value needs to be an ip
+# address, hostnames are not allowed.
+kea_ctrl_agent_http_host: "127.0.0.1"
