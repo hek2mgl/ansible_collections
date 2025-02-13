@@ -4,6 +4,11 @@
 # - start kea
 #
 ---
+- name: Check if the os_family is Debian
+  ansible.builtin.fail:
+    msg: "Only Debian based systems are supported so far. Please submit an issue on github"
+  when: ansible_os_family != 'Debian'
+
 - name: Install OS package
   ansible.builtin.package:
     name: kea
