@@ -3,6 +3,16 @@
     <?include "{{ kea_config_dir }}/include/dhcp4-option-def.conf"?>,
     <?include "{{ kea_config_dir }}/include/dhcp4-ddns-options.conf"?>
 
+    "hooks-libraries": [
+        {
+            "library": "{{ kea_hooks_base_directory }}/libdhcp_lease_cmds.so"
+        },
+        {
+            "library": "{{ kea_hooks_base_directory }}/libdhcp_ha.so",
+            "parameters": {{ kea_dhcp4_ha_parameters | ansible.builtin.to_json(indent=2) | indent(12) }}
+        }
+    ],
+
     "interfaces-config": {
       "interfaces": {{ kea_dhcp4_listen_interfaces | ansible.builtin.to_json() }}
     },

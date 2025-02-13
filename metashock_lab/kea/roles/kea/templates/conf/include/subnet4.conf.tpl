@@ -7,6 +7,9 @@
     }
     {% endfor %}
   ],
+  {% if 'relay' in subnet %}
+  "relay": {{ subnet['relay'] | ansible.builtin.to_json(indent=2) | indent(2) }},
+  {% endif %}
   "subnet": "{{ subnet.network_address }}",
   "next-server": "192.168.178.11",
   {% if 'option-data' in subnet %}
