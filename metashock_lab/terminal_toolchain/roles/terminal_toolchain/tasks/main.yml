@@ -1,0 +1,46 @@
+---
+# tasks file for terminal_toolchain
+
+- name: Install OS packages
+  ansible.builtin.package:
+    name: "{{ item }}"
+  # packages comes from the inventory / group_vars
+  loop: "{{ packages }}"
+  become: true
+
+- name: include_role - git
+  ansible.builtin.include_role:
+    role: git
+  vars:
+    user_name: "{{ git['user_name'] }}"
+    user_email: "{{ git['user_email'] }}"
+
+- name: include_role - vim
+  ansible.builtin.include_role:
+    role: vim
+  vars:
+    vim_user_id: "{{ terminal_toolchain_user_id }}"
+    vim_user_dir: "{{ terminal_toolchain_user_dir }}"
+
+- name: include_role - bash
+  ansible.builtin.include_role:
+    role: bash
+  vars:
+    bash_config_user_id: "{{ terminal_toolchain_user_id }}"
+    bash_config_user_dir: "{{ terminal_toolchain_user_dir }}"
+
+- name: include_role - virtualenvwrapper, wttr_in
+  ansible.builtin.include_role:
+    role: "{{ item }}"
+  loop:
+    - virtualenvwrapper
+    - wttr_in
+
+- name: Install script fix-whitespace
+  ansible.builtin.copy:
+    src: fix-whitespace
+    dest: /usr/local/bin/fix-whitespace
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
