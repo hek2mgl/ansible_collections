@@ -1,0 +1,56 @@
+---
+- name: Make sure that the node-exp user exists
+  ansible.builtin.user:
+    name: node-exp
+    system: true
+  become: true
+
+- name: Install OS dependencies
+  ansible.builtin.package:
+    name: "{{ item }}"
+  become: true
+  loop:
+    - python3-cryptography
+
+- name: Create node_exporter cert dir
+  ansible.builtin.file:
+    path: /etc/node_exporter
+    state: directory
+    owner: node-exp
+    group: node-exp
+  become: true
+
+- name: Generate an OpenSSL private key with the default values (4096 bits, RSA)
+  community.crypto.openssl_privatekey:
+    path: /etc/node_exporter/tls.key
+    owner: node-exp
+    group: node-exp
+  become: true
+
+- name: Generate an OpenSSL Certificate Signing Request
+  community.crypto.openssl_csr:
+    path: /etc/node_exporter/tls.csr
+    privatekey_path: /etc/node_exporter/tls.key
+    common_name: "{{ inventory_hostname }}"
+    owner: node-exp
+    group: node-exp
+  become: true
+
+- name: Create cert and key
+  community.crypto.x509_certificate:
+    path: /etc/node_exporter/tls.cert
+    csr_path: /etc/node_exporter/tls.csr
+    privatekey_path: /etc/node_exporter/tls.key
+    provider: selfsigned
+    owner: node-exp
+    group: node-exp
+  become: true
+
+- name: Apply upstream prometheus.prometheus.node_exporter role
+  ansible.builtin.include_role:
+    name: prometheus.prometheus.node_exporter
+  vars:
+    node_exporter_tls_server_config:
+      cert_file: /etc/node_exporter/tls.cert
+      key_file: /etc/node_exporter/tls.key
+    node_exporter_basic_auth_users: "{{ dict([(node_exporter.username|string, node_exporter.password|string),]) }}"

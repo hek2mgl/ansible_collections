@@ -1,0 +1,6 @@
+---
+- name: Install and configure node_exporter
+  hosts: "{{ target | default('node_exporter') }}"
+  roles:
+    - metashock_lab.observability.node_exporter
+  become: true
