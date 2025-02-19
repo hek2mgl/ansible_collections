@@ -1,15 +1,13 @@
 ---
 - name: Configure the terminal tool chain
-  hosts: "{{ target | default(terminal_toolchain) }}"
+  hosts: "{{ target | default('terminal_toolchain') }}"
+  roles:
+    - metashock_lab.terminal_toolchain.motd
   tasks:
-    - name: include_role - metashock_lab.terminal_toolchain.terminal_toolchain
+    - name: include_role - metashock_lab.terminal_toolchain.terminal_toolchain 
       ansible.builtin.include_role:
         role: metashock_lab.terminal_toolchain.terminal_toolchain
       vars:
-        interactive_cl_user_id: "{{ item.user_id }}"
-        interactive_cl_user_dir: "{{ item.user_dir }}"
-      loop:
-        - user_id: root
-          user_dir: /root
-        - user_id: cldadmin
-          user_dir: /home/cldadmin
+        terminal_toolchain_user_id: "{{ item.user_name }}"
+        terminal_toolchain_user_dir: "{{ item.home_dir }}"
+      loop: "{{ terminal_toolchain_users }}"

@@ -3,38 +3,44 @@
 
 - name: Install OS packages
   ansible.builtin.package:
-    name: "{{ item }}"
+    name: "{{ package_name }}"
   # packages comes from the inventory / group_vars
-  loop: "{{ packages }}"
+  loop: "{{ terminal_toolchain_packages }}"
+  loop_control:
+    loop_var: package_name
   become: true
+  tags:
+    - terminal_toolchain_os_packages
 
 - name: include_role - git
   ansible.builtin.include_role:
-    role: git
+    role: metashock_lab.terminal_toolchain.git
   vars:
-    user_name: "{{ git['user_name'] }}"
-    user_email: "{{ git['user_email'] }}"
+    user_name: "{{ terminal_toolchain_git_user_name }}"
+    user_email: "{{ terminal_toolchain_git_user_email }}"
 
 - name: include_role - vim
   ansible.builtin.include_role:
-    role: vim
+    role: metashock_lab.terminal_toolchain.vim
   vars:
     vim_user_id: "{{ terminal_toolchain_user_id }}"
     vim_user_dir: "{{ terminal_toolchain_user_dir }}"
 
 - name: include_role - bash
   ansible.builtin.include_role:
-    role: bash
+    role: metashock_lab.terminal_toolchain.bash
   vars:
     bash_config_user_id: "{{ terminal_toolchain_user_id }}"
     bash_config_user_dir: "{{ terminal_toolchain_user_dir }}"
 
 - name: include_role - virtualenvwrapper, wttr_in
   ansible.builtin.include_role:
-    role: "{{ item }}"
+    role: "{{ role_fqdn }}"
   loop:
-    - virtualenvwrapper
-    - wttr_in
+    - metashock_lab.terminal_toolchain.virtualenvwrapper
+    - metashock_lab.terminal_toolchain.wttr_in
+  loop_control:
+    loop_var: role_fqdn
 
 - name: Install script fix-whitespace
   ansible.builtin.copy:

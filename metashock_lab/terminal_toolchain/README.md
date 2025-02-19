@@ -1,34 +1,20 @@
 # Ansible Collection - metashock_lab.terminal_toolchain
 
-Configure the terminal tool chain. Install fancy tools. Colorize all the things!!!
+Install, configure the terminal tools for interactive command line access, across the fleet. Make sure it is up to date, in sync and can be further maintained on all hosts.
 
-## Example Configuration
+## Configuration
 
-```yaml
-# Note: role dependencies of this role might install additional packages.
-# The packages in this list are OS packages which doesn't require extra setup
-# steps and therefore doesn't need to get install by a dedeciated role.
-packages:
-  - bat
-  - build-essential
-  - curl
-  - htop
-  - jq
-  - ioping
-  - iotop
-  - libwww-dict-leo-org-perl
-  - lsof
-  - moreutils
-  - ncal
-  - nmap
-  - openssh-client
-  - shellcheck
-  - tmux
-  - tree
-  - vim
-  - tcpdump
+Example:
 
-git:
-  user_name: hek2mgl
-  user_email: hek2mgl@metashock.net
+```console
+$ cat group_vars/terminal_toolchain/main.yml 
+---
+terminal_toolchain_users:
+  - user_name: foo
+    home_dir: "/home/foo"
+  - user_name: root
+    home_dir: "/root"
+
+terminal_toolchain_git_user_name: username
+terminal_toolchain_git_user_email: username@organization.org
 ```

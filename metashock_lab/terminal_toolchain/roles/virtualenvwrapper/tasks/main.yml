@@ -1,0 +1,17 @@
+---
+# tasks file for virtualenvwrapper
+- name: Install OS packages
+  ansible.builtin.package:
+    name: virtualenvwrapper
+  become: true
+
+- name: Ensure that bashrc is patched
+  ansible.builtin.blockinfile:
+    path: "/home/{{ ansible_user_id }}/.bashrc"
+    prepend_newline: true
+    marker: '# {mark} PATCH: metashock_lab.terminal_toolchain.virtualenvwrapper'
+    block: |-
+      export WORKON_HOME=$HOME/.virtualenvs
+      export PROJECT_HOME=$HOME/Devel
+      export VIRTUALENVWRAPPER_SCRIPT=/usr/share/virtualenvwrapper/virtualenvwrapper.sh
+      source /usr/share/virtualenvwrapper/virtualenvwrapper_lazy.sh

@@ -1,0 +1,52 @@
+# Install vim and configure for both, root and current user
+---
+# tasks file for vim
+- name: Install OS package
+  ansible.builtin.package:
+    name: vim
+  become: true
+
+- name: Ensure that the .vim directory exists
+  ansible.builtin.file:
+    path: "{{ vim_user_dir }}/.vim"
+    state: directory
+    owner: "{{ vim_user_id }}"
+    group: "{{ vim_user_id }}"
+    mode: "0700"
+  become: true
+
+- name: Ensure that the .vim/undo directory exists
+  ansible.builtin.file:
+    path: "{{ vim_user_dir }}/.vim/undo"
+    state: directory
+    owner: "{{ vim_user_id }}"
+    group: "{{ vim_user_id }}"
+    mode: "0700"
+  become: true
+
+- name: Ensure that the .vim/view directory exists
+  ansible.builtin.file:
+    path: "{{ vim_user_dir }}/.vim/view"
+    state: directory
+    owner: "{{ vim_user_id }}"
+    group: "{{ vim_user_id }}"
+    mode: "0700"
+  become: true
+
+- name: Install vimrc
+  ansible.builtin.copy:
+    src: .vimrc
+    dest: "{{ vim_user_dir }}/.vimrc"
+    owner: "{{ vim_user_id }}"
+    group: "{{ vim_user_id }}"
+    mode: "0600"
+  become: true
+
+- name: Set EDITOR env var to vim
+  ansible.builtin.copy:
+    src: etc_profile
+    dest: /etc/profile.d/99-vim.sh
+    owner: root
+    group: root
+    mode: "0644"
+  become: true

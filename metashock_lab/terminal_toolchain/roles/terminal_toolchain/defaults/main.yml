@@ -1,2 +1,28 @@
 ---
 # defaults file for terminal_toolchain
+
+# The packages in this list are OS packages which doesn't
+# require extra setup steps
+#
+# Note: imported roles might install additional packages
+terminal_toolchain_packages:
+  - asciijump
+  - bat
+  - build-essential
+  - cowsay # required for Ansible
+  - curl
+  - htop
+  - jq
+  - ioping
+  - iotop
+  - libwww-dict-leo-org-perl
+  - lsof
+  - moreutils
+  - ncal
+  - nmap
+  - openssh-client
+  - shellcheck
+  - tmux
+  - tree
+  - vim
+  - tcpdump

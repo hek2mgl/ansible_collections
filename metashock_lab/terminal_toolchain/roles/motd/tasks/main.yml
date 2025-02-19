@@ -1,0 +1,10 @@
+---
+# tasks file for motd
+- name: Install /etc/motd
+  ansible.builtin.copy:
+    src: motd
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: "0644"
+  become: true

@@ -1,0 +1,12 @@
+---
+# tasks file for wttr_in
+- name: Install shell command
+  ansible.builtin.template:
+    src: "weather.sh.tpl"
+    dest: "/usr/local/bin/weather"
+    owner: "root"
+    group: "root"
+    mode: "0755"
+  become: true
+  tags:
+    - wttr_in

@@ -1,0 +1,28 @@
+---
+# tasks file for git
+- name: Install git
+  ansible.builtin.package:
+    name: git
+  become: true
+
+- name: Apply git config
+  community.general.git_config:
+    name: "{{ config_item.name }}"
+    value: "{{ config_item.value }}"
+    scope: "{{ config_item.scope }}"
+  loop:
+    - name: "init.defaultBranch"
+      value: "main"
+      scope: "global"
+    - name: "user.name"
+      value: "{{ user_name }}"
+      scope: "global"
+    - name: "user.email"
+      value: "{{ user_email }}"
+      scope: "global"
+    - name: "alias.st"
+      value: "status"
+      scope: "global"
+  loop_control:
+    loop_var: config_item
+  become: true

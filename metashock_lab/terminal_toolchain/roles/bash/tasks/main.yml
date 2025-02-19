@@ -1,0 +1,31 @@
+---
+# tasks file for bash
+- ansible.builtin.blockinfile:
+    create: true
+    mode: "0400"
+    owner: "{{ bash_config_user_id }}"
+    group: "{{ bash_config_user_id }}"
+    dest: "{{ bash_config_user_dir }}/.bash_aliases"
+    block: |-
+      alias ip='ip -c'
+      alias ll='ls -alF'
+  tags:
+    - bash_config
+  become: true
+
+- ansible.builtin.blockinfile:
+    create: true
+    mode: "0644"
+    owner: "{{ bash_config_user_id }}"
+    group: "{{ bash_config_user_id }}"
+    dest: "{{ bash_config_user_dir }}/.bashrc"
+    marker: '# {mark} PATCH metashock_lab.terminal_toolchain.bash'
+    block: |-
+      export HISTCONTROL=ignoreboth:erasedups
+
+      if [ -f ~/.bash_aliases ]; then
+        . ~/.bash_aliases
+      fi
+  tags:
+    - bash_config
+  become: true

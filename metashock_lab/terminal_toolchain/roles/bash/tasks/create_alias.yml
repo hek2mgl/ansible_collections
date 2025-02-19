@@ -1,0 +1,10 @@
+# Create an alias if it doesn't exist
+---
+- name: "Check if a command {{ alias_name }} already exists"
+  ansible.builtin.shell:
+    cmd: "type {{ alias_name }}"
+  register: lookup_result
+
+- name: Create alias
+  ansible.builtin.lineinfile:
+    path: "/home/{{ ansible_user }}/.bash_aliases"
