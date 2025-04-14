@@ -42,11 +42,14 @@
   loop_control:
     loop_var: role_fqdn
 
-- name: Install script fix-whitespace
+- name: Install helper scripts
   ansible.builtin.copy:
-    src: fix-whitespace
-    dest: /usr/local/bin/fix-whitespace
+    src: "{{ item }}"
+    dest: /usr/local/bin/
     owner: root
     group: root
     mode: "0755"
   become: true
+  loop:
+    - fix-whitespace
+    - psearch

@@ -1,0 +1,2 @@
+#!/bin/bash
+pgrep -f "${1}" | xargs ps -o state,pid,etime,wchan:20,cmd -p
