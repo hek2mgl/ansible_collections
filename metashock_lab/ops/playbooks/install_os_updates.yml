@@ -3,7 +3,7 @@
 - name: Install OS updates
   hosts: "{{ target | default('bare_metal') }}"
   tasks:
-    - name: apt update
+    - name: apt upgrade
       ansible.builtin.apt:
         upgrade: full
         update_cache: yes
