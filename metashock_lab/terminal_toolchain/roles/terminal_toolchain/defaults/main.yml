@@ -18,11 +18,14 @@ terminal_toolchain_packages:
   - libwww-dict-leo-org-perl
   - lsof
   - moreutils
+  - netcat-openbsd
   - ncal
   - nmap
   - openssh-client
   - shellcheck
+  - telnet
   - tmux
   - tree
   - vim
+  - rlwrap
   - tcpdump
