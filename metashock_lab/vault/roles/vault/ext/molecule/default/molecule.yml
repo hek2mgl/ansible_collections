@@ -1,8 +1,20 @@
 ---
 driver:
   name: docker
+
 platforms:
-  - name: instance
-    # image: quay.io/centos/centos:stream8
+  - name: molecule_vault1
     image: molecule
     pre_build_image: true
+  - name: molecule_vault2
+    image: molecule
+    pre_build_image: true
+
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      vault:
+        hosts:
+          molecule_vault1:
+          molecule_vault2:

@@ -1,5 +1,5 @@
 ---
 - name: Converge
-  hosts: all
+  hosts: vault
   roles:
     - metashock_lab.vault.vault

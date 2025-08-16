@@ -1,6 +1,6 @@
 ---
 - name: Prepare
-  hosts: instance
+  hosts: vault
   tasks:
     - name: Install OS dependencies
       ansible.builtin.apt:
