@@ -1,0 +1,40 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: Install hashicorp gpg key
+  ansible.builtin.shell:
+    cmd: |-
+      curl "{{ vault_apt_gpg_key_url }}" \
+        | gpg --dearmor --no-tty -o "{{ vault_apt_gpg_key_filename }}"
+    creates: "{{ vault_apt_gpg_key_filename }}"
+  become: true
+
+  # Apparently ansible and dpkg using different terminology
+  #
+  #   - ansible_architecture == x86_64
+  #   - dpkg --print-architecture == amd64
+  #
+  # We need to use the latter value for the installation ...
+- name: Get dpkg architecture
+  ansible.builtin.command:
+    cmd: dpkg --print-architecture
+  register: dpkg_architecture
+  changed_when: false
+
+- name: set_fact - dpkg_architeture 
+  ansible.builtin.set_fact:
+    dpkg_architecture: "{{ dpkg_architecture.stdout }}"
+
+- name: Install hashicorp sources list
+  ansible.builtin.template:
+    src: "sources.list.tpl"
+    dest: "{{ vault_apt_sources_list_filename }}"
+    owner: root
+    group: root
+    mode: "0400"
+  become: true
+
+- name: apt update && apt install vault
+  ansible.builtin.apt:
+    update_cache: true
+    package: vault
+  become: true

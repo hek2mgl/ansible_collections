@@ -1,0 +1,9 @@
+---
+- name: Prepare
+  hosts: instance
+  tasks:
+    - name: Install OS dependencies
+      ansible.builtin.apt:
+        name:
+          - gpg
+          - curl

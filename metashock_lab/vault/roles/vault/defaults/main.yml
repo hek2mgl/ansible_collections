@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for vault
+vault_apt_releases_url: "https://apt.releases.hashicorp.com"
+vault_apt_gpg_key_url: "{{ vault_apt_releases_url }}/gpg"
+vault_apt_gpg_key_filename: "/usr/share/keyrings/hashicorp-archive-keyring.gpg"
+vault_apt_sources_list_filename: "/etc/apt/sources.list.d/hashicorp.list"
