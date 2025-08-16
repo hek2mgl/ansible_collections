@@ -38,3 +38,18 @@
     update_cache: true
     package: vault
   become: true
+
+- name: Ensure that the user/group for vault exists
+  ansible.builtin.user:
+    name: "{{ vault_os_user }}"
+    group: "{{ vault_os_group }}"
+    system: true
+  become: true
+
+- name: Prepare storage
+  ansible.builtin.include_tasks:
+    file: prepare_storage.yml
+
+- name: Generate configuration
+  ansible.builtin.include_tasks:
+    file: configure.yml

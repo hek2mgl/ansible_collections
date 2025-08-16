@@ -7,3 +7,14 @@
         name:
           - gpg
           - curl
+          - python3-cryptography
+
+    - name: Install a private key for the vault certificate
+      community.crypto.openssl_privatekey:
+        path: "/root/vault.key.pem"
+
+    - name: Install a self-signed certificate for vault
+      community.crypto.x509_certificate:
+        path: "/root/vault.cert.pem"
+        privatekey_path: "/root/vault.key.pem"
+        provider: selfsigned

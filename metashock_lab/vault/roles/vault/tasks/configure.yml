@@ -1,0 +1,18 @@
+---
+- name: Ensure that the vault config directory exists
+  ansible.builtin.file:
+    state: directory
+    path: "{{ vault_config_dir }}"
+    owner: "{{ vault_os_user }}"
+    group: "{{ vault_os_group }}"
+    mode: "0500"
+  become: true
+
+- name: Render vault server config
+  ansible.builtin.template:
+    src: vault.config.tpl
+    dest: "{{ vault_config_filename }}"
+    owner: "{{ vault_os_user }}"
+    group: "{{ vault_os_group }}"
+    mode: "0400"
+  become: true

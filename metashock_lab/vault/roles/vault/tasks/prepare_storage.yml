@@ -1,0 +1,4 @@
+---
+- name: include_tasks depending on the storage backend type
+  ansible.builtin.include_tasks:
+    file: "prepare_storage_{{ vault_storage_type }}.yml" 

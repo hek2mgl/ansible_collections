@@ -1,0 +1,10 @@
+---
+- name: Ensure that the vault storage directory exists
+  ansible.builtin.file:
+    path: "{{ vault_storage_file_path | dirname }}"
+    state: directory
+    recurse: true
+    owner: "{{ vault_os_user }}"
+    group: "{{ vault_os_group }}"
+    mode: "0700"
+  become: true

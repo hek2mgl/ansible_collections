@@ -2,6 +2,11 @@
 driver:
   name: docker
 
+dependency:
+  name: galaxy
+  collections:
+    - community.crypto
+
 platforms:
   - name: molecule_vault1
     image: molecule
@@ -17,4 +22,8 @@ provisioner:
       vault:
         hosts:
           molecule_vault1:
+            vault_tls_cert_path: /root/vault.cert.pem
+            vault_tls_key_path: /root/vault.key.pem
           molecule_vault2:
+            vault_tls_cert_path: /root/vault.cert.pem
+            vault_tls_key_path: /root/vault.key.pem
