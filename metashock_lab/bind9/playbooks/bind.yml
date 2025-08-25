@@ -1,0 +1,10 @@
+---
+- name: "Install bind dns server"
+  hosts: "{{ target }}"
+  tasks:
+    - ansible.builtin.apt:
+        upgrade: true
+      become: true
+    - ansible.builtin.apt:
+        name: bind9
+      become: true

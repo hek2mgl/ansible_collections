@@ -1,0 +1,36 @@
+# This command works on Ubuntu. The target system is Debian
+#
+# docker run \
+#   --cgroupns=host \
+#   --tmpfs /tmp \
+#   --tmpfs /run \
+#   --tmpfs /run/lock \
+#   -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+#   --rm \
+#   -it molecule_local/debian:bookworm-systemd \
+#     /bin/systemd --system
+#
+---
+driver:
+  name: docker
+
+platforms:
+  - name: dns1
+    image: debian:bookworm-systemd
+    pre_build_image: false
+    dockerfile: debian-bookworm-systemd.Dockerfile
+    command: /bin/systemd --system
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+provisioner:
+  name: ansible
+  inventory:
+    host_vars:
+      dns1:
+        ansible_user: ansible
