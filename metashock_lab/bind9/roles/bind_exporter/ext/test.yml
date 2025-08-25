@@ -1,0 +1,19 @@
+---
+- name: test
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: crete container
+      community.docker.docker_container:
+        name: dns1
+        image: molecule_local/debian:bookworm-systemd
+        command: /bin/systemd --system
+        tmpfs:
+          - /run
+          - /run/lock
+          - /tmp
+        cgroupns_mode: host
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup:rw
+        tty: true
+      register: test

@@ -1,0 +1,93 @@
+# Note: for creating the download url, processor architecture
+#       has to be translated from x86_64 to amd64 or aarch64 to
+#       arm64. I have not other machine types to test
+---
+- name: Get os type
+  ansible.builtin.command:
+    cmd: uname -a
+  register: uname_result
+  changed_when: false
+  ignore_errors: true
+  when: >
+    bind_exporter_os_type == '' or
+    bind_exporter_os_arch == ''
+
+- name: Check if os type is Linux
+  ansible.builtin.set_fact:
+    bind_exporter_os_type: linux
+  when: >
+    bind_exporter_os_type == '' and
+    uname_result.stdout is match('^Linux .*')
+
+- name: Check if cpu architecture is amd64
+  ansible.builtin.set_fact:
+    bind_exporter_os_arch: amd64
+  when: >
+    bind_exporter_os_arch == '' and
+    uname_result.stdout is match('.* x86_64 .*')
+
+- name: Check if cpu architecture is arm64
+  ansible.builtin.set_fact:
+    bind_exporter_os_arch: arm64
+  when: >
+    bind_exporter_os_arch == '' and
+    uname_result.stdout is match('.* aarch64 .*')
+
+# Add support for other os types and os arch as needed
+
+- name: Fail because the os type hasn't been detected
+  ansible.builtin.fail:
+    msg: "failed to detect os type"
+  when: bind_exporter_os_type == None
+
+- name: Download tarball
+  ansible.builtin.unarchive:
+    src: "{{ bind_exporter_download_url_tpl + bind_exporter_os_type + '-' + bind_exporter_os_arch + '.tar.gz' }}"
+    remote_src: true
+    dest: "/usr/src"
+    owner: root
+    group: root
+    mode: "0400"
+    creates: "/usr/src/bind_exporter-{{ bind_exporter_version }}.{{ bind_exporter_os_type }}-{{ bind_exporter_os_arch }}"
+  become: true
+  notify:
+    - Restart bind_exporter.service
+
+- name: Copy binary to bin directory
+  ansible.builtin.copy:
+    src: "/usr/src/bind_exporter-{{ bind_exporter_version }}.{{ bind_exporter_os_type }}-{{ bind_exporter_os_arch }}/bind_exporter"
+    remote_src: true
+    dest: "/usr/local/bin/bind_exporter"
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+  notify:
+    - Restart bind_exporter.service
+
+- name: Create system user
+  ansible.builtin.user:
+    name: "{{ bind_exporter_os_username }}"
+    create_home: false
+    system: true
+  become: true
+
+- name: Create systemd service unit
+  ansible.builtin.template:
+    src: bind_exporter.service.tpl
+    dest: /etc/systemd/system/bind_exporter.service
+    owner: root
+    group: root
+    mode: "0400"
+  become: true
+  notify:
+    - systemctl daemon reload
+    - Restart bind_exporter.service
+
+- name: Enable systemd service unit
+  ansible.builtin.systemd:
+    name: bind_exporter
+    enabled: true
+  become: true
+  notify:
+    - Restart bind_exporter.service

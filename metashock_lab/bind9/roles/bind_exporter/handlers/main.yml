@@ -1,0 +1,13 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: systemctl daemon reload
+  ansible.builtin.systemd:
+    name: bind_exporter
+    daemon_reload: true
+  become: true
+
+- name: Restart bind_exporter.service
+  ansible.builtin.systemd:
+    name: bind_exporter
+    state: restarted
+  become: true
