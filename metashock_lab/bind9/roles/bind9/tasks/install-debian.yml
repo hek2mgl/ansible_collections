@@ -1,0 +1,14 @@
+---
+- name: Install bind9 package
+  ansible.builtin.apt:
+    name:
+      - bind9
+      - dnsutils
+    update_cache: true
+  become: true
+
+- name: Enable the named systemd service
+  ansible.builtin.systemd:
+    name: named.service
+    enabled: true
+  become: true

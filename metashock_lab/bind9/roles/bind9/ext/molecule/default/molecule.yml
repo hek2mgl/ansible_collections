@@ -1,0 +1,54 @@
+---
+driver:
+  name: docker
+
+platforms:
+  - name: dns1
+    hostname: dns1
+    image: debian:bookworm-systemd
+    pre_build_image: false
+    dockerfile: debian-bookworm-systemd.Dockerfile
+    command: /bin/systemd --system
+    networks:
+      - name: foo
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+  - name: dns2
+    hostname: dns2
+    image: debian:bookworm-systemd
+    pre_build_image: false
+    dockerfile: debian-bookworm-systemd.Dockerfile
+    command: /bin/systemd --system
+    networks:
+      - name: foo
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+provisioner:
+  name: ansible
+  inventory:
+    dns:
+      hosts:
+        - dns1
+        - dns2
+      vars:
+        ansible_user: ansible
+        bind9_options_forwarders:
+          - 1.1.1.1
+        bind9_statistics_channels:
+          - type: inet
+            listen_address: 127.0.0.1
+            listen_port: 8053
+            allow:
+            - localhost
