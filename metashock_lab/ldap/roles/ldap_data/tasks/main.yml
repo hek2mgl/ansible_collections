@@ -1,0 +1,37 @@
+# SPDX-License-Identifier: Apache2
+---
+- name: Create LDAP users
+  community.general.ldap_entry:
+    dn: "cn={{ item.cn }},ou=users,{{ openldap_base_dn }}"
+    objectClass:
+      - top
+      - inetOrgPerson
+      - posixAccount
+    attributes:
+      uid: "{{ item.uid | default(item.cn) }}"
+      uidNumber: "{{ item.uidNumber }}"
+      gidNumber: "{{ item.gidNumber | default(item.uidNumber) }}"
+      homeDirectory: "/home/{{ item.uid | default(item.cn) }}"
+      sn: "{{ item.sn | default(item.cn) }}"
+  become: true
+  loop: "{{ ldap_data_users }}"
+
+- name: Create LDAP groups
+  community.general.ldap_entry:
+    dn: "cn={{ item.cn }},ou=groups,{{ openldap_base_dn }}"
+    objectClass:
+      - top
+      - groupOfNames
+    attributes:
+      member:
+        - "cn=cldadmin,ou=users,{{ openldap_base_dn }}"
+      gidNumber: "{{ item.gidNumber }}"
+  become: true
+  loop: "{{ ldap_data_groups }}"
+
+- name: Manage LDAP group memberships
+  ansible.builtin.include_tasks:
+    file: group_membership.yml
+  loop: "{{ ldap_data_groups }}"
+  loop_control:
+    loop_var: "group"

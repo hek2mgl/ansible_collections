@@ -1,0 +1,19 @@
+# hack: A gidNumber is needed for LDAP groups to work
+# with Linux authentication, like nslcd or pam_ldap.
+#
+# Unfortunately, the only way to have groups with a
+# gidNumber attribut is to use the object group 'posixGroup',
+# which is otherwise very limited.
+#
+# To be discussed.
+---
+- name: Copy ldif to the ldap server
+  ansible.builtin.copy:
+    src: schema_customizations.ldif
+    dest: /root/schema_customizations.ldif
+  become: true
+
+- name: Patch LDAP objectClass groupOfNames - Add optional attribute gidNumber
+  ansible.builtin.command:
+    cmd: ldapmodify -Y EXTERNAL -H ldapi:/// -f /root/schema_customizations.ldif
+  become: true

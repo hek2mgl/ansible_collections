@@ -1,0 +1,52 @@
+---
+driver:
+  name: docker
+
+platforms:
+  - name: ldap1
+    image: debian:bookworm-systemd
+    pre_build_image: false
+    dockerfile: debian-bookworm-systemd.Dockerfile
+    command: /bin/systemd --system
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    cgroupns_mode: host
+    user: root
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      server:
+        hosts:
+          ldap1:
+      ldap:
+        hosts:
+          ldap1:
+            # the password is "ldap"
+            openldap_admin_password: "{SSHA}fvg9ND5EFbIQ5IgaArkalcBR6g/28yAp"
+            openldap_base_dn: "dc=metashock,dc=net"
+            openldap_domain: "metashock.net"
+            openldap_organization_name: "metashock"
+            # groups get created at cn=CN,ou=groups,dc=metashock,dc=net
+            ldap_data_groups:
+              - cn: cldadmin
+              - cn: clduser
+
+            # users get created at cn=CN,ou=users,dc=metashock,dc=net
+            ldap_data_users:
+              - cn: cldadmin
+                groups:
+                  - cldadmin
+
+              - cn: hek2mgl
+                groups:
+                  - clduser
+
+              - cn: test
+                groups:
+                  - clduser

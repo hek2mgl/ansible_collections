@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# See: https://wiki.debian.org/LDAP/PAM
+---
+- name: Modify /etc/pam.d/common-account
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/common-account
+    block: |
+      account     required      pam_unix.so
+      account     sufficient    pam_succeed_if.so uid < 1000 quiet
+      account     [default=bad success=ok user_unknown=ignore] pam_ldap.so
+      account     required      pam_permit.so
+
+- name: Modify /etc/pam.d/common-auth
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/common-auth
+    block: |
+      auth    sufficient      pam_unix.so nullok_secure
+      auth    requisite       pam_succeed_if.so uid >= 1000 quiet
+      auth    sufficient      pam_ldap.so use_first_pass
+      auth    required        pam_deny.so
+      auth    required        pam_access.so
+
+- name: Modify /etc/pam.d/common-password
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/common-password
+    block: |
+      password    sufficient    pam_unix.so md5 obscure min=4 max=8 nullok try_first_pass
+      password    sufficient    pam_ldap.so
+      password    required      pam_deny.so
+
+- name: Modify /etc/pam.d/common-session
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/common-session
+    block: |
+      session     required      pam_limits.so
+      session     required      pam_unix.so
+      session     optional      pam_ldap.so

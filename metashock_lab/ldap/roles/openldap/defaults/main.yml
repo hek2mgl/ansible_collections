@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+
+# the password must be hashed. use slappasswd cmd
+openldap_admin_password: ""
+
+# (required) Base dn for the organization.
+# e.g. dc=metashock,dc=net
+openldap_base_dn: ""
+
+# (required) Base domain for the organization
+openldap_domain: ""
+
+# (required) Orgnization name
+openldap_organization_name: ""

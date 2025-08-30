@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: server
+  gather_facts: false
+  roles:
+    - metashock_lab.ldap.pam_ldap
+    - metashock_lab.ldap.nslcd

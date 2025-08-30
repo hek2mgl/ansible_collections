@@ -1,0 +1,17 @@
+---
+- name: Initialize member list
+  ansible.builtin.set_fact:
+    _ldap_data_group_members: []
+
+- name: Populate the member list
+  ansible.builtin.set_fact:
+    _ldap_data_group_members: "{{ _ldap_data_group_members + ['cn=' + item.cn + ',ou=users,dc=metashock,dc=net'] }}"
+  loop: "{{ ldap_data_users | selectattr('groups', 'superset', [group.cn]) }}"
+
+- name: Set the member attribute for the group in LDAP
+  community.general.ldap_attrs:
+    dn: "cn={{ group.cn }},ou=groups,dc=metashock,dc=net"
+    attributes:
+      member: "{{ _ldap_data_group_members }}"
+    state: exact
+  become: true
