@@ -1,0 +1,5 @@
+---
+- name: Include tasks for this host type
+  ansible.builtin.include_role:
+    role: "bootstrap"
+    tasks_from: "{{ bootstrap_hw_type }}/{{ bootstrap_os_type }}.yml"
