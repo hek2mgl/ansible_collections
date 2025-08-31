@@ -1,0 +1,9 @@
+---
+- name: Bootstrap
+  hosts: "{{ target }}"
+  roles:
+    - name: metashock_lab.bootstrap.bootstrap
+      # These values must be passed at execution time
+      # rpi_bootstrap_admin_user: ""
+      # rpi_bootstrap_admin_password: ""
+      # rpi_bootstrap_admin_ssh_pubkey: ""

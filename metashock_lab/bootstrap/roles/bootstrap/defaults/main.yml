@@ -1,0 +1,47 @@
+---
+bootstrap_admin_user: ""
+
+# Use: `openssl passwd -6` to create a password
+bootstrap_admin_password: ""
+
+# The bootstrap process will check if this file exists before starting the
+# actual bootstrap tasks. If it exists, the role assumes that the machine has
+# already been bootstrapped and will skip further tasks. Otherwise, the
+# bootstrap tasks will be executed and the file gets created after all other
+# tasks have succeeded.
+bootstrap_status_filename: /etc/metashock_bootstrap
+
+bootstrap_os_device: "/dev/nvme0n1"
+
+# Must point to an .xz image
+bootstrap_os_image_url: ""
+
+bootstrap_partitions:
+  "/dev/nvme0n1":
+    - size: 1G
+      role: boot
+      fs: vfat
+    - size: 200G
+      type: Linux
+      role: rootfs
+      fs: ext4
+    - size: 500G
+      type: Linux
+      role: data
+      fs: ext4
+
+bootstrap_sfdisk_config: |-
+  label: dos
+  label-id: 0x2e5b1ed1
+  device: /dev/nvme0n1
+  unit: sectors
+  sector-size: 512
+
+  /dev/nvme0n1p1 : start=        8192, size=     1048576, type=c
+  /dev/nvme0n1p2 : start=     1056768, size=   524288000, type=83
+  /dev/nvme0n1p3 : start=   525344768, size=  1475064496, type=83
+
+bootstrap_mountpoint_os_rootfs: /mnt/os_rootfs
+bootstrap_mountpoint_os_bootfs: /mnt/os_bootfs
+bootstrap_mountpoint_img_rootfs: /mnt/img_rootfs
+bootstrap_mountpoint_img_bootfs: /mnt/img_bootfs

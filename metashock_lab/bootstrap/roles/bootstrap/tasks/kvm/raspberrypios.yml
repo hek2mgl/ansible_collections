@@ -1,0 +1,457 @@
+#SPDX-License-Identifier: MIT-0
+---
+# - name: Get current firmware version
+#  ansible.builtin.command:
+#    cmd: rpi-eeprom-update
+#  register: rpi_eeprom_update_result
+#  changed_when: false
+
+#- name: Debug - print firmware version
+#  ansible.builtin.debug:
+#    var: rpi_eeprom_update_result.stdout_lines
+#
+- name: Get partition table of the root device
+  ansible.builtin.command:
+    cmd: "sfdisk -d {{ bootstrap_os_device }}"
+  become: true
+  register: bootstrap_sfdisk_result
+  changed_when: false
+  failed_when: >-
+    bootstrap_sfdisk_result.rc != 0 and
+    "does not contain a recognized partition table"
+    not in bootstrap_sfdisk_result.stderr
+
+- name: Create disk partitions
+  ansible.builtin.command:
+    cmd: "sfdisk -f {{ bootstrap_os_device }}"
+    stdin: "{{ bootstrap_sfdisk_config }}"
+  become: true
+  when: >-
+    (
+      bootstrap_sfdisk_result.rc == 1 and
+      "does not contain a recognized partition table" in bootstrap_sfdisk_result
+    ) or 
+    bootstrap_sfdisk_result.stdout != bootstrap_sfdisk_config
+
+- name: Create filesystems
+  community.general.filesystem:
+    fstype: "{{ fs.type }}"
+    dev: "{{ fs.dev }}"
+  become: true
+  loop:
+    - type: vfat
+      dev: "{{ bootstrap_os_device}}1"
+    - type: ext4
+      dev: "{{ bootstrap_os_device}}2"
+      opts: "-L root"
+    - type: ext4
+      dev: "{{ bootstrap_os_device}}3"
+      opts: "-L data"
+  loop_control:
+    loop_var: fs
+
+- name: Create mountpoint for the OS rootfs and boot partitions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  become: true
+  loop:
+    - "{{ bootstrap_mountpoint_os_rootfs }}"
+    - "{{ bootstrap_mountpoint_os_bootfs }}"
+
+- name: Mount rootfs and boot partitions
+  ansible.posix.mount:
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: "{{ item.fstype }}"
+    state: ephemeral
+  become: true
+  loop:
+    - src: "{{ bootstrap_os_device}}1"
+      path: "{{ bootstrap_mountpoint_os_bootfs }}"
+      fstype: vfat
+    - src: "{{ bootstrap_os_device}}2"
+      path: "{{ bootstrap_mountpoint_os_rootfs }}"
+      fstype: ext4
+
+- name: Check if the machine has already been bootstrapped
+  ansible.builtin.stat:
+    path: "{{ bootstrap_status_filename }}"
+  become: true
+  register: bootstrap_status_stat_result
+
+- name: Print message if status file from previous bootstrap has been found
+  ansible.builtin.debug:
+    msg: >-
+      The file "{{ bootstrap_status_filename }}" exists on the target
+      host, therefore the bootstrap has been skipped. Remove the file
+      to rebootstrap the machine.
+  when: bootstrap_status_stat_result.stat.exists
+
+- name: Set fact - bootstrap_new
+  ansible.builtin.set_fact:
+    bootstrap_exists: "{{ bootstrap_status_stat_result.stat.exists }}"
+
+- name: Check if OS tarball has already been downloaded
+  ansible.builtin.stat:
+    path: "{{ bootstrap_mountpoint_os_rootfs }}/os.image.xz"
+    get_checksum: false
+  register: stat_tarball_result
+  when: 'not bootstrap_exists'
+
+- name: Check if OS tarball has already been unarchived
+  ansible.builtin.stat:
+    path: "{{ bootstrap_mountpoint_os_rootfs }}/os.image"
+    get_checksum: false
+  register: stat_unarchive_result
+  when: 'not bootstrap_exists'
+
+# the uri module caused a 'disk full' error on machines with <=2G memory
+
+# - name: Download OS tarball
+#   ansible.builtin.uri:
+#     url: "{{ bootstrap_os_image_url }}"
+#     dest: "{{ bootstrap_mountpoint_os_rootfs }}/os.image.xz"
+#     decompress: false
+#     status_code:
+#       - 200
+#       - 304
+#   when: not stat_tarball_result.stat.exists and not stat_unarchive_result.stat.exists
+#   become: true
+
+- name: Download OS tarball
+  ansible.builtin.command:
+    cmd: "wget -O os.image.xz {{ bootstrap_os_image_url }}"
+    chdir: "{{ bootstrap_mountpoint_os_rootfs }}"
+  become: true
+  when: >-
+    not bootstrap_exists and
+    not stat_tarball_result.stat.exists and
+    not stat_unarchive_result.stat.exists
+
+- name: Unarchive OS tarball
+  ansible.builtin.command:
+    cmd: "unxz os.image.xz"
+    chdir: "{{ bootstrap_mountpoint_os_rootfs }}"
+  when: >-
+    not bootstrap_exists and
+    not stat_unarchive_result.stat.exists
+  become: true
+
+- name: Check if a loopback device from the unpacked iso image has already been created
+  ansible.builtin.command:
+    cmd: /usr/sbin/losetup
+  changed_when: false
+  when: 'not bootstrap_exists'
+  register: losetup_list_result
+
+- name: Get device name of existing losetup device
+  ansible.builtin.set_fact:
+    os_image_loopback_device: "{{ ((losetup_list_result.stdout_lines | select('match', '.*os.image.*'))[0] |split)[0] }}"
+  when: >-
+    not bootstrap_exists and
+    (losetup_list_result.stdout_lines | select('match', '.*os.image.*')) | length > 0
+
+- name: Create a loopback device from the unpacked iso image
+  ansible.builtin.command:
+    cmd: "/usr/sbin/losetup --show -f {{ bootstrap_mountpoint_os_rootfs }}/os.image"
+  register: losetup_create_result
+  when: >-
+    not bootstrap_exists and
+    (losetup_list_result.stdout_lines | select('match', '.*os.image.*')) | length == 0
+  become: true
+
+- name: Get device name of newly created loopback device
+  ansible.builtin.set_fact:
+    os_image_loopback_device: "{{ losetup_create_result.stdout }}"
+  when: >-
+    not bootstrap_exists and
+    (losetup_list_result.stdout_lines | select('match', '.*os.image.*')) | length == 0
+
+- name: Check if the partitions of the image have been exposed already
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: stat_result
+  when: 'not bootstrap_exists'
+  loop:
+    - "{{ os_image_loopback_device }}p1"
+    - "{{ os_image_loopback_device }}p2"
+
+- name: Expose partions of the os image with partx
+  ansible.builtin.command:
+    cmd: "partx -uv {{ os_image_loopback_device }}"
+  register: partx_result
+  become: true
+  # Thanks Ansible for this intuitive syntax!
+  when: >-
+    not bootstrap_exists and
+    ((stat_result.results | selectattr('stat.exists', 'equalto', false) | map(attribute='stat.exists') | list) | count) != 0
+
+- name: Mount image partitions
+  ansible.posix.mount:
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: "{{ item.fstype }}"
+    state: ephemeral
+  become: true
+  loop:
+    - src: "{{ os_image_loopback_device }}p1"
+      path: /mnt/img_boot
+      fstype: vfat
+    - src: "{{ os_image_loopback_device }}p2"
+      path: /mnt/img_rootfs
+      fstype: ext4
+  when: 'not bootstrap_exists'
+
+- name: Copy OS partitions to disk
+  ansible.builtin.command:
+    cmd: "rsync -av {{ item.src }}/ {{ item.dest }}"
+  become: true
+  loop:
+    - src: /mnt/img_boot
+      dest: "{{ bootstrap_mountpoint_os_bootfs }}"
+    - src: /mnt/img_rootfs
+      dest: "{{ bootstrap_mountpoint_os_rootfs }}"
+  when: 'not bootstrap_exists'
+
+#
+# Post config
+# 
+
+- name: Enable ssh
+  ansible.builtin.copy:
+    dest: "{{ bootstrap_mountpoint_os_bootfs }}/ssh"
+    content: ""
+  become: true
+
+- name: Get PARTUUID from os_rootfs
+  ansible.builtin.command:
+    cmd: "/usr/sbin/blkid {{ bootstrap_os_device }}2 --output value"
+  become: true
+  changed_when: false
+  register: blkid_result
+
+- name: set_fact - bootstrap_rootfs_partuuid
+  ansible.builtin.set_fact:
+    bootstrap_rootfs_partuuid: "{{ blkid_result.stdout_lines[3] }}"
+
+- name: Get PARTUUID from os_bootfs
+  ansible.builtin.command:
+    cmd: "/usr/sbin/blkid {{ bootstrap_os_device }}1 --output value"
+  become: true
+  changed_when: false
+  register: blkid_result
+
+- name: set_fact - bootstrap_rootfs_partuuid
+  ansible.builtin.set_fact:
+    bootstrap_bootfs_partuuid: "{{ blkid_result.stdout_lines[3] }}"
+
+- name: Get PARTUUID from os_datafs
+  ansible.builtin.command:
+    cmd: "/usr/sbin/blkid {{ bootstrap_os_device }}3 --output value"
+  become: true
+  changed_when: false
+  register: blkid_result
+
+- name: set_fact - bootstrap_datafs_partuuid
+  ansible.builtin.set_fact:
+    bootstrap_datafs_partuuid: "{{ blkid_result.stdout_lines[3] }}"
+
+- name: Write /etc/fstab
+  ansible.builtin.template:
+    src: etc__fstab.tpl
+    dest: /mnt/os_rootfs/etc/fstab
+  become: true
+
+- name: Write cmdline.txt
+  ansible.builtin.template:
+    src: cmdline.txt.tpl
+    dest: "{{ bootstrap_mountpoint_os_bootfs }}/cmdline.txt"
+  become: true
+
+- name: Truncate /etc/hostname (will be set by dhcp-client)
+  ansible.builtin.copy:
+    dest: /etc/hostname
+    content: ""
+  become: true
+
+- name: Check if user pi exists
+  ansible.builtin.command:
+    cmd: chroot /mnt/os_rootfs getent passwd pi
+  become: true
+  register: getent_result
+  failed_when: getent_result.rc != 0 and getent_result.rc != 2
+  changed_when: false
+
+  # this task is not idempotent because the above rsync will create the user
+  # again when the playbook runs twice.
+
+- name: Delete user pi
+  ansible.builtin.command:
+    cmd: chroot /mnt/os_rootfs userdel -r pi
+  become: true
+  when: getent_result.rc == 0
+
+- name: Check if the local admin user already exists
+  ansible.builtin.command:
+    cmd: "chroot /mnt/os_rootfs getent passwd {{ bootstrap_admin_user }}"
+  become: true
+  register: getent_result
+  failed_when: getent_result.rc != 0 and getent_result.rc != 2
+  changed_when: false
+
+  # this task is not idempotent, because the above rsync will delete the user
+  # again when the playbook runs twice.
+
+- name: Create local admin user
+  ansible.builtin.command:
+    cmd: "chroot /mnt/os_rootfs useradd {{ bootstrap_admin_user }} -m -d /home/{{ bootstrap_admin_user }}"
+  become: true
+  when: getent_result.rc == 2
+
+- name: Set the local admin user's password
+  ansible.builtin.shell:
+    cmd: "echo '{{ bootstrap_admin_user }}:{{ bootstrap_admin_password }}' | chroot /mnt/os_rootfs chpasswd -e"
+  become: true
+
+- name: Add the local admin user to the group sudo
+  ansible.builtin.command:
+    cmd: "chroot /mnt/os_rootfs usermod -aG sudo {{ bootstrap_admin_user }}"
+  become: true
+
+- name: Create the .ssh directory for the admin user
+  ansible.builtin.file:
+    path: "/mnt/os_rootfs/home/{{ bootstrap_admin_user }}/.ssh"
+    state: directory
+    owner: "{{ bootstrap_admin_user }}"
+    group: "{{ bootstrap_admin_user }}"
+    mode: "0700"
+  become: true
+
+- name: Add pubkey to .ssh/authorized_keys for the admin user
+  ansible.builtin.copy:
+    dest: "/mnt/os_rootfs/home/{{ bootstrap_admin_user }}/.ssh/authorized_keys"
+    content: "{{ bootstrap_admin_ssh_pubkey }}"
+    owner: "{{ bootstrap_admin_user }}"
+    group: "{{ bootstrap_admin_user }}"
+    mode: 0600
+  become: true
+
+- name: Set DNS nameserver and search
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    content: |-
+      nameserver 192.168.178.11
+      search lab.metashock.net
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+
+- name: Create userconf.txt
+  ansible.builtin.copy:
+    dest: "{{ bootstrap_mountpoint_os_bootfs }}/userconf.txt"
+    content: "{{ bootstrap_admin_user }}:{{ bootstrap_admin_password }}"
+    owner: root
+    group: root
+    mode: "0600"
+  become: true
+
+- name: Disable autologin
+  ansible.builtin.command:
+    cmd: "chroot {{ bootstrap_mountpoint_os_rootfs }} raspi-config nonint do_boot_behaviour B1"
+  become: true
+
+- name: Set locale
+  ansible.builtin.command:
+    cmd: chroot /mnt/os_rootfs/ raspi-config nonint do_change_locale en_US.UTF-8
+  become: true
+
+- name: Set keyboard layout
+  ansible.builtin.command:
+    cmd: "chroot /mnt/os_rootfs/ raspi-config nonint do_configure_keyboard 'German - German (no dead keys)'"
+  become: true
+
+- name: Run apt update
+  ansible.builtin.command:
+    cmd: chroot /mnt/os_rootfs apt update
+  become: true
+
+- name: Install iptables
+  ansible.builtin.command:
+    cmd: chroot /mnt/os_rootfs apt install -y iptables
+  become: true
+
+    #- name: Configure iptables
+    #ansible.builtin.command:
+    #cmd: "{{ item }}"
+    #become: true
+    #loop:
+    #- iptables -I INPUT -p tcp -s --dport  -j DROP
+    #- iptables -P INPUT -j DROP
+    #- iptables -P OUTPUT -j DROP
+    #- iptables -P FORWARD -j DROP
+
+- name: Create bootstrap status file
+  ansible.builtin.copy:
+    dest: "{{ bootstrap_status_filename }}"
+    content: "1"
+    owner: root
+    group: root
+    mode: "0600"
+  become: true
+
+- name: Unmount OS image loopback device
+  ansible.posix.mount:
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: "{{ item.fstype }}"
+    state: unmounted
+  become: true
+  loop:
+    - src: "{{ os_image_loopback_device }}p1"
+      path: /mnt/img_boot
+      fstype: vfat
+    - src: "{{ os_image_loopback_device }}p2"
+      path: /mnt/img_rootfs
+      fstype: ext4
+  when: 'not bootstrap_exists'
+
+- name: Unexpose partions of the os image with partx
+  ansible.builtin.command:
+    cmd: "partx -d {{ os_image_loopback_device }}"
+  become: true
+  # Thanks Ansible for this intuitive syntax!
+  when: >-
+    not bootstrap_exists and
+    ((stat_result.results | selectattr('stat.exists', 'equalto', false) | map(attribute='stat.exists') | list) | count) != 0
+
+- name: Delete OS image loopback device
+  ansible.builtin.command:
+    cmd: "/sbin/losetup -d {{ os_image_loopback_device }}"
+  become: true
+  when: losetup_create_result is not skipped
+
+- name: Delete bootstrap artifacts
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  become: true
+  loop:
+    - "{{ bootstrap_mountpoint_os_rootfs }}/os.image"
+    - "{{ bootstrap_mountpoint_os_rootfs }}/os.image.xz"
+
+- name: Unmount rootfs and boot partitions
+  ansible.posix.mount:
+    src: "{{ item.src }}"
+    path: "{{ item.path }}"
+    fstype: "{{ item.fstype }}"
+    state: unmounted
+  become: true
+  loop:
+    - src: "{{ bootstrap_os_device}}1"
+      path: "{{ bootstrap_mountpoint_os_bootfs }}"
+      fstype: vfat
+    - src: "{{ bootstrap_os_device}}2"
+      path: "{{ bootstrap_mountpoint_os_rootfs }}"
+      fstype: ext4

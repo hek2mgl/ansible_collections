@@ -1,0 +1,23 @@
+---
+- name: Get current partition table
+  ansible.builtin.command:
+    cmd: "sfdisk -d {{ rpi_bootstrap_os_device }}"
+  register: sfdisk_result
+  # sfdisk exits with 1 when there is not partitioning table
+  # on the device.
+  ignore_errors: true
+  failed_when: >
+    sfdisk_result.rc != 0 and
+    sfdisk_result.stderr is not match(".*does not contain a recognized partition table.*")
+  become: true
+  changed_when: false
+
+- name: Debug - print sfdisk stderr
+  ansible.builtin.debug:
+    var: sfdisk_result.stderr
+  when: sfdisk_result.rc != 0
+
+- name: Debug - print partition table
+  ansible.builtin.debug:
+    var: sfdisk_result.stdout
+  when: sfdisk_result.rc == 0
