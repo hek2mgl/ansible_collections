@@ -3,24 +3,6 @@ driver:
   name: docker
 
 platforms:
-  - name: ldap1
-    image: debian:bookworm-systemd
-    pre_build_image: false
-    dockerfile: debian-bookworm-systemd.Dockerfile
-    command: /bin/systemd --system
-    tmpfs:
-      - /run
-      - /run/lock
-      - /tmp
-    networks:
-      - name: "molecule-ldap-${MOLECULE_SCENARIO_NAME}"
-    published_ports:
-      - 3890:389/tcp
-    cgroupns_mode: host
-    user: root
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-
   - name: server1
     image: debian:bookworm-systemd
     pre_build_image: false
@@ -44,44 +26,3 @@ provisioner:
       server:
         hosts:
           server1:
-            nslcd_bindpw: "ldap"
-            nslcd_binddn: "cn=admin,dc=metashock,dc=net"
-            nslcd_ldap_uri: "ldap://ldap1"
-            nslcd_ldap_auth_type: "simple"
-            nslcd_ldap_starttls: "false"
-            nslcd_ldap_base: "dc=metashock,dc=net"
-            nslcd_search_base_shadow: "ou=users,dc=metashock,dc=net"
-            nslcd_search_base_passwd: "ou=users,dc=metashock,dc=net"
-            nslcd_search_base_group: "ou=groups,dc=metashock,dc=net"
-      ldap:
-        hosts:
-          ldap1:
-            # the password is "ldap"
-            openldap_admin_password: "{SSHA}fvg9ND5EFbIQ5IgaArkalcBR6g/28yAp"
-            openldap_base_dn: "dc=metashock,dc=net"
-            openldap_domain: "metashock.net"
-            openldap_organization_name: "metashock"
-
-            # groups get created at cn=CN,ou=groups,dc=metashock,dc=net
-            ldap_data_groups:
-              - cn: cldadmin
-                gidNumber: 2000
-              - cn: clduser
-                gidNumber: 2001
-
-            # users get created at cn=CN,ou=users,dc=metashock,dc=net
-            ldap_data_users:
-              - cn: cldadmin
-                uidNumber: 1200
-                groups:
-                  - cldadmin
-
-              - cn: hek2mgl
-                uidNumber: 1337
-                groups:
-                  - clduser
-
-              - cn: test
-                uidNumber: 1201
-                groups:
-                  - clduser

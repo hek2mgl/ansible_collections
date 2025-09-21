@@ -7,13 +7,27 @@
 #
 # To be discussed.
 ---
+- name: Get LDAP schema of the groupOfNames objectClass
+  community.general.ldap_search:
+    dn: "cn={0}core,cn=schema,cn=config"
+    scope: "base"
+    attrs:
+      - olcObjectClasses
+  become: true
+  register: openldap_ldap_search_result
+
+- ansible.builtin.set_fact:
+    openldap_gid_patch_applied: "{{ 'gidNumber' in (openldap_ldap_search_result.results[0].olcObjectClasses[7]) }}"
+
 - name: Copy ldif to the ldap server
   ansible.builtin.copy:
     src: schema_customizations.ldif
     dest: /root/schema_customizations.ldif
   become: true
+  when: openldap_gid_patch_applied == false
 
 - name: Patch LDAP objectClass groupOfNames - Add optional attribute gidNumber
   ansible.builtin.command:
     cmd: ldapmodify -Y EXTERNAL -H ldapi:/// -f /root/schema_customizations.ldif
   become: true
+  when: openldap_gid_patch_applied == false

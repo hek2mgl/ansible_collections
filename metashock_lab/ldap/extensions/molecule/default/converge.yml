@@ -1,0 +1,14 @@
+---
+- name: Converge - ldap server
+  hosts: ldap
+  gather_facts: false
+  roles:
+    - metashock_lab.ldap.openldap
+    - metashock_lab.ldap.ldap_data
+
+- name: Converge - ldap auth
+  hosts: server
+  gather_facts: false
+  roles:
+    - metashock_lab.ldap.pam_ldap
+    - metashock_lab.ldap.nslcd

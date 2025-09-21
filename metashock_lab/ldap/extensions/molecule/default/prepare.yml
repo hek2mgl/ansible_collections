@@ -12,10 +12,5 @@
         - iproute2
         - curl
         - netcat-openbsd
-
-- name: Prepare - ldap
-  hosts: ldap
-  gather_facts: false
-  roles:
-    - metashock_lab.ldap.openldap
-    - metashock_lab.ldap.ldap_data
+        - man
+        - bash-completion

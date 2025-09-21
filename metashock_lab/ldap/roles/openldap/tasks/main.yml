@@ -6,6 +6,7 @@
     question: "{{ item.question }}"
     value: "{{ item.value }}"
     vtype: "{{ item.vtype }}"
+  become: true
   loop:
     - question: shared/organization
       value: "{{ openldap_organization_name }}"
@@ -107,20 +108,3 @@
       member:
         - "cn=cldadmin,ou=users,{{ openldap_base_dn }}"
   become: true
-
-# slapd	shared/organization	string	metashock
-# slapd	slapd/domain	string	metashock.net
-# slapd	slapd/dump_database	select	when needed
-# slapd	slapd/dump_database_destdir	string	/var/backups/slapd-VERSION
-# slapd	slapd/internal/adminpw	password
-# slapd	slapd/internal/generated_adminpw	password
-# slapd	slapd/invalid_config	boolean	true
-# slapd	slapd/move_old_database	boolean	true
-# slapd	slapd/no_configuration	boolean	false
-# slapd	slapd/password1	password
-# slapd	slapd/password2	password
-# slapd	slapd/password_mismatch	note
-# slapd	slapd/postinst_error	note
-# # Do you want the database to be removed when slapd is purged?
-# slapd	slapd/purge_database	boolean	true
-# slapd	slapd/upgrade_slapcat_failure	error
