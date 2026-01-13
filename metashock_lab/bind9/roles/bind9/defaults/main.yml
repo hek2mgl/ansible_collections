@@ -1,0 +1,16 @@
+#SPDX-License-Identifier: MIT-0
+---
+bind9_options_directory: /var/cache/bind
+bind9_options_forwarders: []
+bind9_options_dnssec_validation: "auto"
+
+# statistics, consumable by bind prometheus exporter
+# see: https://support.tools/monitor-bind-dns-grafana-prometheus-bind-exporter/
+bind9_statistics_channels: []
+# Example:
+# bind9_statistics_cannels:
+#  - type: inet
+#    listen-address: 127.0.0.1
+#    listen-port: 8053
+#    allow:
+#      - localhost

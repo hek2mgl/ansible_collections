@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: Restart named.service
+  ansible.builtin.systemd:
+    name: named.service
+    state: restarted
+  become: true

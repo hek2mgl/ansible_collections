@@ -9,7 +9,7 @@ namespace: metashock_lab
 name: bind9
 
 # The version of the collection. Must be compatible with semantic versioning
-version: 0.9.0
+version: 0.9.1
 
 # The path to the Markdown (.md) readme file. This path is relative to the root of the collection
 readme: README.md
@@ -67,4 +67,3 @@ build_ignore: []
 # 'omit_default_directives' is a boolean that controls whether the default directives are used. Mutually exclusive
 # with 'build_ignore'
 # manifest: null
-
