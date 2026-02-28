@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+# Running as non root user doesn't seem to work on Debian, it causes
+# permission errors when trying to binding the socket on startup
+nslcd_user: root
+nslcd_group: root
+
+# The location at which the LDAP server(s) should be reachable.
+# Separate multiple instances by spaces
+nslcd_ldap_uri: ""
+
+# The search base that will be used for all queries.
+nslcd_search_base_passwd: ""
+nslcd_search_base_shadow: ""
+nslcd_search_base_group: ""
+
+# The DN to bind with for normal lookups.
+nslcd_binddn: ""
+nslcd_bindpw: ""
+
+# The DN used for password modifications by root.
+# rootpwmoddn cn=admin,dc=example,dc=com
+
+# SSL options
+# ssl off
+# tls_reqcert never
+# tls_cacertfile /etc/ssl/certs/ca-certificates.crt
+
+# The search scope.
+# scope sub

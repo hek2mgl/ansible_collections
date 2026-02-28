@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+  # debconf-utils is apparently needed for the ansible.builtin.debconf
+  # resource below.
+  # Note: In other roles, it worked without. Needs investiagtion.
+- name: Install OS package debconf-utils
+  ansible.builtin.apt:
+    name: debconf-utils
+  become: true
+
+- name: Debconf settings for nslcd
+  ansible.builtin.debconf:
+    name: "{{ item.name | default('nslcd') }}"
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  loop:
+    - question: nslcd/ldap-bindpw
+      value: "{{ nslcd_bindpw }}"
+      vtype: password
+
+    - question: nslcd/ldab-binddn
+      value: "{{ nslcd_binddn }}"
+      vtype: string
+
+    - question: nslcd/ldap-uris
+      value: "{{ nslcd_ldap_uri }}"
+      vtype: string
+
+    - question: nslcd/ldap-auth-type
+      value: "{{ nslcd_ldap_auth_type }}"
+      vtype: string
+
+    - question: nslcd/ldap-starttls
+      value: "{{ nslcd_ldap_starttls }}"
+      vtype: boolean
+
+    - question: nslcd/ldap_base
+      value: "{{ nslcd_ldap_base }}"
+      vtype: string
+
+    - question: libnss-ldapd/nsswitch
+      value: "passwd group shadow"
+      vtype: multiselect
+
+- name: Install OS packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    update_cache: true
+  become: true
+  loop:
+    - nslcd
+
+- name: Create group
+  ansible.builtin.group:
+    name: "{{ nslcd_group }}"
+  become: true
+
+- name: Create system user, and add it to the group
+  ansible.builtin.user:
+    name: "{{ nslcd_user }}"
+    system: true
+    groups:
+      - "{{ nslcd_group }}"
+  become: true
+
+- name: Write nslcd config file
+  ansible.builtin.template:
+    src: nslcd.conf.tpl
+    dest: /etc/nslcd.conf
+    owner: "{{ nslcd_user }}"
+    group: "{{ nslcd_group }}"
+    mode: "0400"
+  become: true
+
+- name: Ensure nslcd is started
+  ansible.builtin.systemd:
+    name: nslcd
+    state: started
+  become: true

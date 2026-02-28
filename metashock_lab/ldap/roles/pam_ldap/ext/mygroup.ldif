@@ -1,0 +1,6 @@
+dn: cn=mygroup,ou=groups,dc=metashock,dc=net
+objectClass: groupOfNames
+objectClass: posixGroup
+cn: mygroup
+gidNumber: 11000
+member: cn=hek2mgl,ou=users,dc=metashock,dc=net

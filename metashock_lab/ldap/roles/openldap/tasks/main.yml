@@ -1,0 +1,110 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+- name: Set slapd shared/organization
+  ansible.builtin.debconf:
+    name: "{{ item.name | default('slapd') }}"
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  become: true
+  loop:
+    - question: shared/organization
+      value: "{{ openldap_organization_name }}"
+      vtype: string
+
+    - question: slapd/domain
+      value: "{{ openldap_domain }}"
+      vtype: string
+
+- name: Install OS packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    update_cache: true
+  become: true
+  loop:
+    - slapd
+    - python3-ldap
+
+- name: Ensure slapd is started
+  ansible.builtin.systemd:
+    name: slapd
+    state: started
+  become: true
+
+# Apply base configuration
+
+- name: Customize ldap schemas
+  ansible.builtin.include_tasks:
+    file: _schema_modifications.yml
+
+- name: Get the admin password from vault
+  ansible.builtin.include_tasks:
+    file: _get_admin_password_from_vault.yml
+  when: openldap_admin_password == ""
+
+- name: Set olcAccess for database mdb
+  community.general.ldap_attrs:
+    dn: "olcDatabase={1}mdb,cn=config"
+    attributes:
+      olcAccess:
+        # This adds EXTERNAL auth which is disabled by default in Debian
+        - >-
+          {0}to * by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage by * break
+        - >-
+          {1}to attrs=userPassword by self write by anonymous auth by * none
+        - >-
+          {2}to attrs=shadowLastChange by self write by * read
+        - >-
+          {3}to * by * read
+    state: exact
+  become: true
+
+- name: Set the adminstrator passwords
+  community.general.ldap_attrs:
+    dn: "olcDatabase={1}mdb,cn=config"
+    attributes:
+      olcRootPW: "{{ openldap_admin_password }}"
+    state: exact
+  become: true
+
+  # See: https://kifarunix.com/how-to-create-openldap-member-groups/
+  # - name: Load the required modules
+  #   community.general.ldap_attrs:
+  #     dn: cn=module{0},cn=config
+  #     attributes:
+  #       olcModuleLoad: dynlist.la
+  #     state: present
+  #   become: true
+
+- name: Create the parent entries for users and groups
+  community.general.ldap_entry:
+    dn: "{{ item }}"
+    objectClass:
+      - top
+      - organizationalUnit
+  become: true
+  loop:
+    - "ou=users,{{ openldap_base_dn }}"
+    - "ou=groups,{{ openldap_base_dn }}"
+
+- name: Create the user cldadmin
+  community.general.ldap_entry:
+    dn: "cn=cldadmin,ou=users,{{ openldap_base_dn }}"
+    objectClass:
+      - top
+      - inetOrgPerson
+    attributes:
+      uid: "cldadmin"
+      sn: "cldadmin"
+  become: true
+
+- name: Create the group cldadmin and add the user cldadmin to it
+  community.general.ldap_entry:
+    dn: "cn=cldadmin,ou=groups,{{ openldap_base_dn }}"
+    objectClass:
+      - top
+      - groupOfNames
+    attributes:
+      member:
+        - "cn=cldadmin,ou=users,{{ openldap_base_dn }}"
+  become: true

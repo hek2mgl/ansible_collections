@@ -1,0 +1,10 @@
+---
+- name: Converge
+  hosts: ldap
+  gather_facts: false
+  roles:
+    - metashock_lab.ldap.openldap
+    - metashock_lab.ldap.ldap_data
+      #    - metashock_lab.ldap.ldap_data_users_and_groups
+      #    - metashock_lab.ldap.ldap_data_dhcp
+      #    - metashock_lab.ldap.ldap_data_dns

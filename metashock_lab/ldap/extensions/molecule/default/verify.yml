@@ -1,0 +1,13 @@
+---
+- name: Verify
+  hosts: ldap
+  tasks:
+    - name: Get ldap namingContexts
+      ansible.builtin.command:
+        cmd: ldapsearch -x -LLL -s base -b "" namingContexts
+      register: ldapsearch_result
+      changed_when: false
+
+    - name: Assert that namingContext is set correctly
+      ansible.builtin.assert:
+        that: '"dc=metashock,dc=net" in ldapsearch_result.stdout'

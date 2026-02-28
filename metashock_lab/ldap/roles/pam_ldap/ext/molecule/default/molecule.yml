@@ -1,0 +1,28 @@
+---
+driver:
+  name: docker
+
+platforms:
+  - name: server1
+    image: debian:bookworm-systemd
+    pre_build_image: false
+    dockerfile: debian-bookworm-systemd.Dockerfile
+    command: /bin/systemd --system
+    tmpfs:
+      - /run
+      - /run/lock
+      - /tmp
+    networks:
+      - name: "molecule-ldap-${MOLECULE_SCENARIO_NAME}"
+    cgroupns_mode: host
+    user: root
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      server:
+        hosts:
+          server1:

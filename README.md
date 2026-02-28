@@ -11,6 +11,10 @@ collections:
     source: git+https://github.com/hek2mgl/ansible_collections.git#/metashock_lab/bind9
     type: git
 
+  - name: metashock_lab.ldap
+    source: git+https://github.com/hek2mgl/ansible_collections.git#/metashock_lab/ldap
+    type: git
+
   - name: metashock_lab.kea
     source: git+https://github.com/hek2mgl/ansible_collections.git#/metashock_lab/kea/
     type: git

@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# See: https://wiki.debian.org/LDAP/PAM
+---
+- name: Install required OS packages
+  ansible.builtin.apt:
+    name: libpam-ldapd
+    update_cache: true
+  become: true
+
+- name: Write /etc/pam.d/99_ldap-account
+  ansible.builtin.copy:
+    path: /etc/pam.d/99_ldap-account
+    block: |
+      account     required      pam_unix.so
+      account     sufficient    pam_succeed_if.so uid < 1000 quiet
+      account     [default=bad success=ok user_unknown=ignore] pam_ldap.so
+      account     required      pam_permit.so
+
+- name: Write /etc/pam.d/99_ldap-auth
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/99_ldap-auth
+    block: |
+      auth    sufficient      pam_unix.so nullok_secure
+      auth    requisite       pam_succeed_if.so uid >= 1000 quiet
+      auth    sufficient      pam_ldap.so use_first_pass
+      auth    required        pam_deny.so
+      auth    required        pam_access.so
+  become: true
+
+- name: Write /etc/pam.d/99_ldap-password
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/99_ldap-password
+    block: |
+      password    sufficient    pam_unix.so md5 obscure min=4 max=8 nullok try_first_pass
+      password    sufficient    pam_ldap.so
+      password    required      pam_deny.so
+  become: true
+
+- name: Write /etc/pam.d/99_ldap-session
+  ansible.builtin.blockinfile:
+    path: /etc/pam.d/99_ldap-session
+    block: |
+      session     required      pam_limits.so
+      session     required      pam_unix.so
+      session     optional      pam_ldap.so
+  become: true

@@ -1,0 +1,7 @@
+dn: cn={0}core,cn=schema,cn=config
+changetype: Modify
+delete: olcObjectClasses
+olcObjectClasses: {7}( 2.5.6.9 NAME 'groupOfNames' DESC 'RFC2256: a group of names (DNs)' SUP top STRUCTURAL MUST ( member $ cn ) MAY ( businessCategory $ seeAlso $ owner $ ou $ o $ description ) )
+-
+add: olcObjectClasses
+olcObjectClasses: {7}( 2.5.6.9 NAME 'groupOfNames' DESC 'RFC2256: a group of names (DNs)' SUP top STRUCTURAL MUST ( member $ cn ) MAY ( gidNumber $ businessCategory $ seeAlso $ owner $ ou $ o $ description ) )

@@ -1,0 +1,16 @@
+---
+- name: Prepare - common
+  hosts: all
+  tasks:
+    - name: Install OS packages
+      ansible.builtin.apt:
+        name: "{{ item }}"
+      become: true
+      loop:
+        - vim
+        - inetutils-ping
+        - iproute2
+        - curl
+        - netcat-openbsd
+        - man
+        - bash-completion

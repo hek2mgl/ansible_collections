@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+galaxy_info:
+  author: hek2mgl
+  description: setup pam-ldap
+  company: metashock
+  license: Apache-2.0
+  min_ansible_version: "2.19.1"
+  galaxy_tags:
+    - ldap
+    - pam
+
+dependencies: []
