@@ -1,0 +1,7 @@
+---
+# see: https://docs.k3s.io/installation/uninstall
+
+- name: Run the uninstall script
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s-uninstall.sh
+  become: true

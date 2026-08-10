@@ -1,0 +1,38 @@
+# Installs k3s
+---
+- name: Get /proc/cmdline
+  ansible.builtin.command:
+    cmd: cat /proc/cmdline
+  become: false
+  register: cmdline_result
+
+- name: Check if the required cmdline flags are in place
+
+
+- name: Make sure that iptables is installed
+  ansible.builtin.package:
+    name: iptables
+  become: true
+
+- name: Make sure iptables-legacy is the active firweall
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - update-alternatives --set iptables /usr/sbin/iptables-legacy
+    - update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+  become: true
+
+- name: Download k3s installer
+  ansible.builtin.uri:
+    url: "https://get.k3s.io"
+    dest: "./k3s-install.sh"
+    mode: 0600
+  become: false
+
+- name: include_tasks - Include tasks based on server role
+  ansible.builtin.include_tasks:
+
+- name: Set KUBECONFIG environment variable
+  ansible.builtin.lineinfile:
+    path: "/etc/environment"
+    line: "KUBECONFIG=/etc/rancher/k3s/k3s.yaml"
+  become: true

@@ -1,0 +1,11 @@
+---
+all:
+  hosts:
+  children:
+    bootstrap:
+      hosts:
+        new5:
+          hw_type: rpi5_nvme_hat
+          os_type: raspberrypios
+          rpi_bootstrap_os_image_url: "http://s1.lab.metashock.net/images/2025-05-13-raspios-bookworm-arm64-lite.img.xz"
+

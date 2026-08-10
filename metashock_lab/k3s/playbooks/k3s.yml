@@ -1,0 +1,32 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Create a group for the first k3s server node
+      ansible.builtin.add_host:
+        groups:
+          - k3s_seed
+        name: "{{ groups['k3s_server'] | first }}"
+
+- name: Install and configure the first k3s server
+  hosts: k3s_seed
+  # The k3s installation requires root privileges but the upstream role
+  # k3s.orchestration.k3s_server role doesn't set 'become' on a per-task
+  # level. Therefore it has to be set in outer scope on play level.
+  become: true
+  tasks:
+    - name: include_role - metashock_lab.k3s.k3s_server
+      ansible.builtin.include_role:
+        name: metashock_lab.k3s.k3s_server
+        tasks_from: custom_ca
+    
+    - name: include_role - k3s.orchestration.k3s_server
+      ansible.builtin.include_role:
+        name: k3s.orchestration.k3s_server
+
+- name: Install and configure the remaining servers
+  hosts: k3s_server
+  become: true
+  tasks:
+    - name: include_role - k3s.orchestration.k3s_server
+      ansible.builtin.include_role:
+        name: k3s.orchestration.k3s_server

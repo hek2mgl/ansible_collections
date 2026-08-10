@@ -1,0 +1,39 @@
+---
+- name: Copy files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "0400"
+  become: true
+  loop:
+    - src: "{{ metashock_lab_k3s_ca_cert }}"
+      dest: "/var/lib/rancher/k3s/server/tls/root-ca.pem"
+    - src: "{{ metashock_lab_k3s_intermediate_cert }}"
+      dest: "/var/lib/rancher/k3s/server/tls/intermediate-ca.pem"
+
+- name: Copy keys
+  ansible.builtin.copy:
+    dest: "/var/lib/rancher/k3s/server/tls/intermediate-ca.key"
+    content: "{{ metashock_lab_k3s_intermediate_key }}"
+    owner: root
+    group: root
+    mode: "0400"
+  become: true
+
+- name: Generate custom k3s ca-certs
+  ansible.builtin.shell:
+    cmd: "sh -"
+    stdin: "{{ lookup('ansible.builtin.url', 'https://github.com/k3s-io/k3s/raw/master/contrib/util/generate-custom-ca-certs.sh') }}"
+  become: true
+
+- name: Remove temporary files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/var/lib/rancher/k3s/server/tls/root-ca.pem"
+    - "/var/lib/rancher/k3s/server/tls/intermediate-ca.pem"
+    - "/var/lib/rancher/k3s/server/tls/intermediate-ca.key"
+  become: true

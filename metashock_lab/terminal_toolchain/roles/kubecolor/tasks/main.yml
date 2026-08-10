@@ -1,0 +1,45 @@
+---
+- name: Install kubecolor
+  hosts: "{{ target | default('terminal_toolchain') }}"
+  vars:
+    kubecolor_download_url: "https://github.com/kubecolor/kubecolor/releases/download/v0.5.0/kubecolor_{{ kubecolor_version }}_{{ kubecolor_os_type }}_{{ kubecolor_arch }}.tar.gz"
+  tasks:
+    - ansible.builtin.fail:
+        msg: |-
+          Your OS or hw architecture is not supported. Supported OS is Linux,
+          supported architectures are aarch64 and x86_64
+      when: ansible_system != 'Linux'
+        or ansible_architecture not in ['aarch64', 'x86_64']
+
+    - name: set_fact - kubecolor_version
+      ansible.builtin.set_fact:
+        kubecolor_version: "0.5.0"
+
+    - name: set_fact - kubecolor_arch (arm64)
+      ansible.builtin.set_fact:
+        kubecolor_arch: "arm64"
+      when: ansible_architecture == 'aarch64'
+
+    - name: set_fact - kubecolor_arch (amd64)
+      ansible.builtin.set_fact:
+        kubecolor_arch: "amd64"
+      when: ansible_architecture == 'x86_64'
+
+    - name: set_fact - kubecolor_os_type (linux)
+      ansible.builtin.set_fact:
+        kubecolor_os_type: "linux"
+      when: ansible_system == 'Linux'
+
+    - name: Download tarball
+      ansible.builtin.uri:
+        url: "{{ kubecolor_download_url }}"
+        dest: "/usr/src/kubecolor.tgz"
+        owner: root
+        group: root
+        mode: "0600"
+      become: true
+
+    - name: Unpack and install tarball
+      ansible.builtin.command:
+        cmd: tar xvf /usr/src/kubecolor.tgz -C /usr/local/bin
+      become: true

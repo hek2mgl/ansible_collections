@@ -1,0 +1,27 @@
+# Args:
+#
+#   - verify_checksums: false|true
+#
+---
+- name: Download the checksum
+  ansible.builtin.set_fact:
+    _checksum: "{{ (lookup('ansible.builtin.url', os_checksum_url) | split())[0] }}"
+
+- ansible.builtin.stat:
+    path: "{{ tmp_path }}"
+    checksum_algorithm: sha256
+    get_checksum: "{{ verify_checksums }}"
+  register: _stat_archive_result
+  become: true
+
+- name: Download the compressed OS image
+  ansible.builtin.uri:
+    url: "{{ os_download_url }}"
+    dest: "{{ tmp_path }}"
+  become: true
+  register: _download_result
+  when: >
+    not _stat_archive_result.stat.exists or (
+      verify_checksums == true and
+      _stat_archive_result.stat.checksum != _checksum
+    )

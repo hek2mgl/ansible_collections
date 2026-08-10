@@ -1,0 +1,15 @@
+---
+- name: Update the firewall settings
+  hosts: "{{ target }}"
+  tasks:
+    - name: Write firewall settings to /etc/network/if-pre-up.d/firewall
+      ansible.builtin.copy:
+        content: "{{ firewall_script }}"
+        dest: "/etc/network/if-pre-up.d/firewall"
+        owner: "root"
+        group: "root"
+        mode: "0750"
+      become: true
+      # The variable firewall_script can be set as a host var. 
+      # For example in host_vars/HOSTNAME/10_firewall.yml
+      when: firewall_script is defined

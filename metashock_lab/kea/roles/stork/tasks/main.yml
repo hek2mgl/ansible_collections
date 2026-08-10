@@ -1,0 +1,45 @@
+---
+# Install stork based on the documentation at https://stork.readthedocs.io/en/v2.0.0/install.html#installing-on-debian-ubuntu
+#
+# Currently, only Debian/Ubuntu ( incl. RaspberryPi OS) is supported but support for other
+# OSes can be added. See the link above
+- name: Fail when os_family is not Debian
+  ansible.builtin.fail:
+    msg: "OS family must be Debian"
+  when: ansible_os_family != "Debian"
+
+# The upstream documentation recommends
+#
+#   curl SCRIPT_URL | sudo bash
+#
+# With Ansible, it's better to split this into two commands to separate
+# super user privileges. The download doesn't need to run as root, only 
+# the script invocation needs root permissions.
+- name: Add the stork apt repository to the system (download script)
+  ansible.builtin.uri:
+    url: "{{ stork_debian_script_url }}"
+    dest: "./stork_debian_script.sh"
+  become: false
+
+- name: Add the stork apt repository to the system (execute script)
+  ansible.builtin.shell:
+    cmd: "bash ./stork_debian_script.sh"
+  become: true
+
+- name: Install the stork-server OS package
+  ansible.builtin.apt:
+    name: isc-stork-server
+    update_cache: true
+  become: true
+
+- name: Enable and start the isc-stork-server systemd service
+  ansible.builtin.systemd_service:
+    name: isc-stork-server
+    enabled: true
+    state: started
+  become: true
+
+    #- name: Ensure that the stork service is started
+    #ansible.builtin.service:
+    #name: iscp-stork-server
+    #become: true

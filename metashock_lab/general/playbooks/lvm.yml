@@ -1,0 +1,57 @@
+# See: https://www.redhat.com/en/blog/automating-logical-volume-manager
+---
+- name: Setup the LVM on the 3rd partition of the 1T rpis
+  hosts: "{{ target }}"
+  tasks:
+
+    - name: Make sure that lvm2 is installed
+      ansible.builtin.package:
+        name: lvm2
+      become: true
+
+    - name: Ensure that the volume groups exist
+      lvg:
+        vg: "{{ vg.name }}"
+        pvs: "{{ vg.pvs }}"
+      become: true
+      loop: "{{ lvm_volume_groups|default([]) }}"
+      loop_control:
+        loop_var: vg
+
+    - name: Ensure that the logical volumes exist
+      lvol:
+        vg: "{{ lv.vg }}"
+        lv: "{{ lv.name }}"
+        size: "{{ lv.size }}"
+      become: true
+      loop: "{{ lvm_volumes }}"
+      loop_control:
+        loop_var: lv
+
+    - name: Ensure that a filesystems exist
+      community.general.filesystem:
+        fstype: "{{ fs.type }}"
+        dev: "{{ fs.dev }}"
+        uuid: "{{ fs.uuid|default('random') }}"
+      become: true
+      loop: "{{ filesystems|default([]) }}"
+      loop_control:
+        loop_var: fs
+
+          #    - name: Make sure that the mount directory exists
+          #      ansible.builtin.file:
+          #        path: /srv/k3s-data/postgres-data/pgdata
+          #        recurse: true
+          #        state: absent
+          #        owner: root
+          #        group: root
+          #        mode: 0700
+          #      become: true
+
+          #    - name: Ensure that filesystems are mounted
+          #      ansible.builtin.mount:
+          #        path: /srv/k3s-data/postgres-data
+          #        src: /dev/mapper/k3s--data-postgres--data
+          #        fstype: ext4
+          #        state: mounted
+          #      become: true

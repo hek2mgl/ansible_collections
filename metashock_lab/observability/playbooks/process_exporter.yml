@@ -1,0 +1,6 @@
+---
+- name: Prometheus process_exporter
+  hosts: "{{target}}"
+  tasks:
+    - include_role:
+        role: prometheus.prometheus.process_exporter

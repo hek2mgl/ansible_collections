@@ -1,0 +1,7 @@
+---
+- name: Install OS package
+  ansible.builtin.apt:
+    name: openvpn
+    state: present
+    update_cache: true
+  become: true

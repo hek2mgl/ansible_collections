@@ -1,0 +1,19 @@
+---
+- name: Deploy ca certs
+  hosts: "{{ target }}"
+  tasks:
+    - name: Copy bundle to remote location
+      ansible.builtin.copy:
+        src: "./lab.metashock.net.bundle.pem"
+        # the .crt extension is mandatory for update-ca-certificates
+        # to detect and import the script
+        dest: "/usr/local/share/ca-certificates/lab.metashock.net.bundle.crt"
+        owner: root
+        group: root
+        mode: 0600
+      become: true
+
+    - name: Import bundle
+      ansible.builtin.command:
+        cmd: "update-ca-certificates"
+      become: true

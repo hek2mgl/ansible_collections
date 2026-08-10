@@ -1,9 +1,128 @@
+# Install a bootstrap image on s1
 ---
-- name: Bootstrap
-  hosts: "{{ target }}"
-  roles:
-    - name: metashock_lab.bootstrap.bootstrap
-      # These values must be passed at execution time
-      # rpi_bootstrap_admin_user: ""
-      # rpi_bootstrap_admin_password: ""
-      # rpi_bootstrap_admin_ssh_pubkey: ""
+- name: Install bootstrap image
+  gather_facts: false
+  hosts: "s1.*"
+  vars:
+    bootstrap_image_download_url: "http://s1.lab.metashock.net:8181/images/2025-05-13-raspios-bookworm-arm64-lite.img.xz"
+    bootstrap_image_checksum_url: "https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2025-05-13/2025-05-13-raspios-bookworm-arm64-lite.img.xz.sha256"
+    bootstrap_image_download_filename: "/tmp/2025-05-13-raspios-bookworm-arm64-lite.img.xz"
+    bootstrap_image_img_checksum: "1a988b6c00d8a675ca3619678d5c3ee62daa6f36a48f3e5f40e7098756a79f60"
+    bootstrap_image_img_filename: "/tmp/2025-05-13-raspios-bookworm-arm64-lite.img"
+    verify_checksums: false
+    bootstrap_image_name: "raspberrypios-2025092200"
+    bootstrap_image_img_boot_mountpoint: "img_boot_part"
+    bootstrap_image_img_root_mountpoint: "img_root_part"
+    bootstrap_image_tftp_root: "/srv/tftp/my_bootstrap/2025092701"
+    bootstrap_image_mksquashfs_temp_dir: "/src/boostrap_image/{{ bootstrap_image_name }}"
+  tasks:
+    - name: Check if the uncompressed OS image exists on disk
+      ansible.builtin.stat:
+        path: "{{ bootstrap_image_img_filename }}"
+        checksum_algorithm: sha256
+        get_checksum: "{{ verify_checksums }}"
+      register: _stat_img_result
+      become: true
+
+    - name: Download the OS image
+      ansible.builtin.include_tasks:
+        file: tasks/download_os_image.yml
+      when: >
+        not _stat_img_result.stat.exists or (
+          verify_checksums == true and
+          _stat_img_result.stat.checksum != bootstrap_image_img_checksum
+        )
+
+    - name: Uncompress the OS image
+      community.general.decompress:
+        src: "{{ bootstrap_image_download_filename }}"
+        format: "xz"
+        dest: "{{ bootstrap_image_img_filename }}"
+      become: true
+      when: >
+        not _stat_img_result.stat.exists or (
+          verify_checksums == true and
+          _stat_img_result.stat.checksum != bootstrap_image_img_checksum
+        )
+
+      # The included tasks will set the variable _loopback_device_name
+    - name: Create loopback device from OS img
+      ansible.builtin.include_tasks:
+        file: tasks/create_loopback_device.yml
+
+    - name: Check if partitions have been exposed
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ _loopback_device_name }}p1"
+        - "{{ _loopback_device_name }}p2"
+      register: _stat_loopback_partitions_result
+
+    - name: Expose partitions of the loopback device
+      ansible.builtin.command:
+        cmd: "partx -av {{ _loopback_device_name }}"
+      become: true
+      when: "_stat_loopback_partitions_result.results|selectattr('stat.exists', 'equalto', false)|length > 0"
+
+    - name: Create directory for boot files
+      ansible.builtin.file:
+        path: "{{ bootstrap_image_tftp_root }}/{{ bootstrap_image_name }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      become: true
+
+    - name: Create mountpoints for img partitions
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      become: true
+      loop:
+        - "{{ bootstrap_image_img_boot_mountpoint }}"
+        - "{{ bootstrap_image_img_root_mountpoint }}"
+
+    - name: Create local directories for the img partitions
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+      become: true
+      loop:
+        - "{{ bootstrap_image_tftp_root }}"
+        - "{{ bootstrap_image_mksquashfs_temp_dir }}"
+
+    - name: Mount loopback partitions
+      ansible.posix.mount:
+        boot: false
+        path: "{{ item.path }}"
+        src: "{{ item.src }}"
+        state: mounted
+        fstype: "{{ item.fstype }}"
+      become: true
+      loop:
+        - src: "{{ _loopback_device_name }}p1"
+          path: "{{ bootstrap_image_img_boot_mountpoint }}"
+          fstype: vfat
+        - src: "{{ _loopback_device_name }}p2"
+          path: "{{ bootstrap_image_img_root_mountpoint }}"
+          fstype: ext4
+
+    - name: Synchronize files with rsync
+      ansible.builtin.command:
+        cmd: "rsync -avn {{ item.src }}/ {{ item.dest }}/"
+      become: true
+      when: false
+      loop:
+        - src: "{{ bootstrap_image_img_boot_mountpoint }}"
+          dest: "{{ bootstrap_image_tftp_root }}"
+        - src: "{{ bootstrap_image_img_root_mountpoint }}"
+          dest: "{{ bootstrap_image_mksquashfs_temp_dir }}"
+
+          #    - name: Get exposed partitions with kpartx
+          #      ansible.builtin.command:

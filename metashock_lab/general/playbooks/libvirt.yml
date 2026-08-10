@@ -1,0 +1,39 @@
+---
+- name: libvirt test
+  hosts: s1*
+  gather_facts: false
+  tasks:
+    - name: test
+      community.libvirt.virt:
+        command: list_vms
+      become: true
+      register: list_vms_result
+
+    - name: undefine
+      community.libvirt.virt:
+        command: undefine
+        name: "{{ item }}"
+        flags:
+          - managed_save
+          - snapshots_metadata
+          - nvram
+          - checkpoints_metadata
+      become: true
+      loop: "{{ list_vms_result.list_vms }}"
+
+    # Basic VM creation with Fedora installation
+    - name: Create a basic Fedora VM
+      community.libvirt.virt_install:
+        name: my-fedora-vm
+        memory: 2048
+        vcpus: 2
+        disks:
+          - size: 20
+        osinfo:
+          name: generic
+        location: https://download.fedoraproject.org/pub/fedora/linux/releases/42/Server/aarch64/iso
+        graphics:
+          type: spice
+        networks:
+          - network: default
+      become: true

@@ -1,0 +1,13 @@
+# The following patterns match Ansible collections which are getting
+# pulled in as dependencies during molecule tests because the tests run
+# with the environment:
+#
+#   ANSIBLE_COLLECTIONS_PATH="~/src/:~/.ansible/collections"
+#
+# A better way of installing dependencies during tests, which doesn't mess
+# with the repository, would be good. Unfortunately, I don't haven't found
+# a better way yet.
+community/*
+ansible/*
+community.*
+ansible.*

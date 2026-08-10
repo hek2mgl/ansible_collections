@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: Apache-2.0
+---
+- name: Create file with ca keys
+  ansible.builtin.copy:
+    dest: /etc/ssh/trusted-user-ca-keys.pem
+    content: "{{ sshd_trusted_user_ca_pubkey }}"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify:
+    - Restart sshd
+
+- name: Create sshd config snippet
+  ansible.builtin.copy:
+    src: sshd_config__trusted_ca.conf
+    dest: /etc/ssh/sshd_config.d/trusted_ca.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify:
+    - Restart sshd

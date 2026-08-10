@@ -1,0 +1,40 @@
+# Args
+#
+#   - bootstrap_image_img_filename
+#
+# Sets
+#
+#   - _loopback_device_name
+---
+- name: Get existing loopback devices
+  ansible.builtin.command:
+    cmd: losetup --list --json
+  become: true
+  register: losetup_result
+  changed_when: false
+
+- name: Parse losetup output as json
+  ansible.builtin.set_fact:
+    _loopback_devices: "{{ (losetup_result.stdout | from_json)['loopdevices'] }}"
+
+- name: Check if a loopback device with this img exists
+  ansible.builtin.set_fact:
+    _loopback_device_exists: "{{ _loopback_devices|selectattr('back-file', 'equalto',  bootstrap_image_img_filename)|length > 0 }}"
+
+- name: Get the name of the existing loopback device
+  ansible.builtin.set_fact:
+    _loopback_device_name: "{{ (_loopback_devices|selectattr('back-file', 'equalto', bootstrap_image_img_filename))[0].name }}"
+  when: _loopback_device_exists
+
+- name: Create a loopback device with the OS img as back-file
+  ansible.builtin.command:
+    cmd: "losetup --show --find {{ bootstrap_image_img_filename }}"
+  become: true
+  register: losetup_create_result
+  when: _loopback_device_exists == false
+
+- name: Get name of the loopback device from the losetup output
+  ansible.builtin.set_fact:
+    _loopback_device_name: "{{ losetup_create_result.stdout }}"
+    _loopback_device_exists: true
+  when: losetup_create_result is not skipped

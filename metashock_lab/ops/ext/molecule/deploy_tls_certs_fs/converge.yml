@@ -1,0 +1,15 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+      # Transfer the p12 first to the remote location and restrict read
+      # permissions to root. No unencrypted files would be created locally.
+    - name: Copy p12 archive to the remote location
+      ansible.builtin.copy:
+        remote_src: false
+        src: "{{ p12_filename }}"
+        dest: "{{ (privkey_fs_path | default(cert_fs_path)) | dirname }}"
+        owner: root
+        group: root
+        mode: "0400"
+      become: true

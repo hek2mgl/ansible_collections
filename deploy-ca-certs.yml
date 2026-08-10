@@ -1,0 +1,38 @@
+---
+- name: copy ca certs to k3s host
+  hosts: "{{ target }}"
+  vars:
+    ca_root_cert: "lab.ca-cert.pem"
+    ca_intermediate_cert: "k3s-certs.cert.pem"
+    ca_intermediate_key: "k3s-certs.key.pem"
+  tasks:
+    - name: copy files
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: "0400"
+      become: true
+      loop:
+        - src: "{{ ca_root_cert }}"
+          dest: "/var/lib/rancher/k3s/server/tls/root-ca.pem"
+        - src: "{{ ca_intermediate_cert }}"
+          dest: "/var/lib/rancher/k3s/server/tls/intermediate-ca.pem"
+        - src: "{{ ca_intermediate_key }}"
+          dest: "/var/lib/rancher/k3s/server/tls/intermediate-ca.key"
+
+    - name: install files
+      ansible.builtin.shell:
+        cmd: "curl -sL https://github.com/k3s-io/k3s/raw/master/contrib/util/generate-custom-ca-certs.sh | bash -"
+      become: true
+
+    - name: remove temporary files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/var/lib/rancher/k3s/server/tls/root-ca.pem"
+        - "/var/lib/rancher/k3s/server/tls/intermediate-ca.pem"
+        - "/var/lib/rancher/k3s/server/tls/intermediate-ca.key"
+      become: true

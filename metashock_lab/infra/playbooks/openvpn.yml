@@ -1,0 +1,5 @@
+---
+- name: OpenVPN
+  hosts: "{{ target }}"
+  roles:
+    - metashock_lab.infra.openvpn

@@ -1,0 +1,3 @@
+---
+# defaults file for stork
+stork_debian_script_url: "https://dl.cloudsmith.io/public/isc/stork/cfg/setup/bash.deb.sh"

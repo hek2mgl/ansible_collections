@@ -1,0 +1,18 @@
+#!/bin/bash
+ANSIBLE_COLLECTIONS_PATH=~/src:~/.ansible/collections
+
+export ANSIBLE_COLLECTIONS_PATH
+
+inventory=~/src/lab.metashock.net/ansible/inventory/bootstrap.yml
+
+host=192.168.178.31
+
+# hashed using yescrypt
+admin_password='$y$j9T$WuEqlhPIZ8PVYZdWCx4XZ1$B593Z1OWI4l9KRzRLXiMgycap./Bz/tnT32HCcUVm1.'
+
+ansible-playbook \
+    -i "${inventory}" \
+    -e target="$host" \
+    -e "bootstrap_admin_password='${admin_password}'" \
+    metashock_lab.bootstrap.bootstrap \
+    -kKv

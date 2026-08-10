@@ -1,0 +1,14 @@
+#!/bin/bash
+
+name_space="metashock_lab"
+name="k3s"
+
+rm "${name}"*tar.gz -fv
+ansible-galaxy collection build "${name_space}/${name}" --force
+ansible-galaxy collection install "${name_space}-${name}"-*.tar.gz --force
+
+ansible-playbook k3s.orchestration.site \
+    -i k3s.hosts.yml \
+    --ask-become-pass \
+    --vault-password-file .vault-pw \
+    -v 

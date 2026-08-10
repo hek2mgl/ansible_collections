@@ -1,0 +1,13 @@
+---
+- name: Update DNS for the zone lab.metashock.net
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Add A records
+      community.general.nsupdate:
+        server: "192.168.178.11"
+        zone: "{{ dns_config[0].zone_name }}"
+        record: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: "{{ item.state | default(omit) }}"
+      loop: "{{ dns_config[0].records.A }}"
